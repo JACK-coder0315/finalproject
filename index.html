@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>HbA1c Group Comparison</title>
+    <title>Violin Plot: ΔGlucose vs. HbA1c</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: sans-serif;
         }
 
-        #feature-select {
-            margin: 1em 0;
+        svg {
+            overflow: visible;
         }
 
-        .boxplot {
-            fill: #ccc;
+        .violin {
+            fill: lightgray;
             stroke: #333;
+            opacity: 0.6;
         }
 
-        .median {
-            stroke: #000;
-            stroke-width: 2px;
+        .dot {
+            fill: steelblue;
+            opacity: 0.5;
+        }
+
+        .axis path,
+        .axis line {
+            stroke: #aaa;
         }
     </style>
-    <!-- 防止 favicon 404 -->
-    <link rel="icon" href="data:;base64,=">
 </head>
 
 <body>
-    <label for="feature-select">Select Feature:</label>
-    <select id="feature-select"></select>
-    <svg id="chart" width="700" height="450"></svg>
-
-    <!-- 引入脚本 -->
+    <svg id="violin" width="800" height="500"></svg>
     <script src="script.js"></script>
 </body>
 

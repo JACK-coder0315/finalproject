@@ -1,49 +1,60 @@
-// Configuration
-const csvFile = 'project3_w_hba1c.csv';   // Path to your CSV file
+// 配置：CSV 路径 & HbA1c 分箱阈值
+const csvFile = 'project3_w_hba1c.csv';
 const hba1cThresholds = { low: 5.7, medium: 6.5 };
 
-// Load and process data
 d3.csv(csvFile, d => ({
   subject: d.subject_id,
   hba1c:   +d.hba1c,
   food:    d.food_type,
   time:    +d.time,
   glucose: +d.glucose
-})).then(rawData => {
-  // Group by subject and food to compute baseline (time=0) and peak glucose
-  const groupedData = d3.group(rawData, d => d.subject, d => d.food);
+}))
+.then(rawData => {
+  // --- 1. 数据预处理，计算 delta ---
+  const grouped = d3.group(rawData, d => d.subject, d => d.food);
   const records = [];
 
-  for (const [subject, foods] of groupedData) {
-    // Determine HbA1c category for this subject
+  for (const [subject, foods] of grouped) {
+    // 每个 subject 的 HbA1c 值与类别
     const hba1cValue = foods.values().next().value[0].hba1c;
     const category = hba1cValue < hba1cThresholds.low
       ? 'low'
       : (hba1cValue < hba1cThresholds.medium ? 'medium' : 'high');
 
-    // For each food, find baseline and peak
+    // 每种 food 的 baseline (time=0) 与 peak
     for (const [food, entries] of foods) {
       const baseline = entries.find(d => d.time === 0)?.glucose;
       const peak     = d3.max(entries, d => d.glucose);
       if (baseline != null) {
-        records.push({ subject, food, delta: peak - baseline, category });
+        records.push({
+          subject,
+          food,
+          delta: peak - baseline,
+          category
+        });
       }
     }
   }
 
-  // Populate dropdown menu with unique food types
+  // --- 2. 构造下拉菜单 ---
   const foodTypes = Array.from(new Set(records.map(d => d.food)));
-  const select = d3.select('#food-select')
-                   .selectAll('option')
-                   .data(foodTypes)
-                   .join('option')
-                     .attr('value', d => d)
-                     .text(d => d);
+  if (foodTypes.length === 0) {
+    throw new Error('No food types found – check CSV data and path.');
+  }
 
-  select.on('change', drawPlot);
-  select.property('value', foodTypes[0]);
+  // 明确拿到 <select> 元素
+  const dropdown = d3.select('#food-select');
+  dropdown.selectAll('option')
+    .data(foodTypes)
+    .join('option')
+      .attr('value', d => d)
+      .text(d => d);
 
-  // Set up SVG canvas and axes
+  // 绑定 change 事件 & 默认值
+  dropdown.on('change', drawPlot);
+  dropdown.property('value', foodTypes[0]);
+
+  // --- 3. 画布和坐标轴设置 ---
   const svg = d3.select('#viz');
   const margin = { top: 30, right: 20, bottom: 40, left: 50 };
   const width  = +svg.attr('width')  - margin.left - margin.right;
@@ -52,7 +63,7 @@ d3.csv(csvFile, d => ({
                .attr('transform', `translate(${margin.left},${margin.top})`);
 
   const xScale = d3.scalePoint()
-                   .domain(['low', 'medium', 'high'])
+                   .domain(['low','medium','high'])
                    .range([0, width])
                    .padding(0.5);
 
@@ -61,80 +72,72 @@ d3.csv(csvFile, d => ({
                    .range([height, 0]);
 
   g.append('g')
-   .attr('transform', `translate(0,${height})`)
-   .call(d3.axisBottom(xScale));
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(xScale));
 
   g.append('g')
-   .call(d3.axisLeft(yScale));
+    .call(d3.axisLeft(yScale));
 
-  // Draw boxplots for the selected food
+  // --- 4. 绘制箱线图函数 ---
   function drawPlot() {
-    const selectedFood = select.property('value');
-    const filtered     = records.filter(d => d.food === selectedFood);
-    const byCategory   = d3.group(filtered, d => d.category);
+    const selectedFood = dropdown.property('value');
+    const subset       = records.filter(d => d.food === selectedFood);
+    const byCategory   = d3.group(subset, d => d.category);
 
-    // Remove existing plots
+    // 先清除旧的图形
     g.selectAll('.boxplot').remove();
 
-    // For each HbA1c category, compute quartiles and whiskers
-    byCategory.forEach((values, category) => {
-      const deltas = values.map(d => d.delta).sort(d3.ascending);
-      const q1     = d3.quantile(deltas, 0.25);
-      const median = d3.quantile(deltas, 0.5);
-      const q3     = d3.quantile(deltas, 0.75);
+    // 对每个类别分别画箱线
+    byCategory.forEach((vals, category) => {
+      const arr    = vals.map(d => d.delta).sort(d3.ascending);
+      const q1     = d3.quantile(arr, 0.25);
+      const median = d3.quantile(arr, 0.5);
+      const q3     = d3.quantile(arr, 0.75);
       const iqr    = q3 - q1;
-      const min    = Math.max(d3.min(deltas), q1 - 1.5 * iqr);
-      const max    = Math.min(d3.max(deltas), q3 + 1.5 * iqr);
+      const min    = Math.max(d3.min(arr), q1 - 1.5 * iqr);
+      const max    = Math.min(d3.max(arr), q3 + 1.5 * iqr);
       const cx     = xScale(category);
 
-      // Draw the box
+      // 箱体
       g.append('rect')
-       .attr('class', 'boxplot')
+       .attr('class','boxplot')
        .attr('x', cx - 15)
        .attr('y', yScale(q3))
        .attr('width', 30)
        .attr('height', yScale(q1) - yScale(q3));
 
-      // Draw the median line
+      // 中位线
       g.append('line')
-       .attr('class', 'boxplot median')
-       .attr('x1', cx - 15)
-       .attr('x2', cx + 15)
-       .attr('y1', yScale(median))
-       .attr('y2', yScale(median));
+       .attr('class','boxplot median')
+       .attr('x1', cx - 15).attr('x2', cx + 15)
+       .attr('y1', yScale(median)).attr('y2', yScale(median));
 
-      // Draw whiskers
-      // Upper whisker
+      // 上须
       g.append('line')
-       .attr('class', 'boxplot median')
-       .attr('x1', cx)
-       .attr('x2', cx)
-       .attr('y1', yScale(max))
-       .attr('y2', yScale(q3));
+       .attr('class','boxplot median')
+       .attr('x1', cx).attr('x2', cx)
+       .attr('y1', yScale(max)).attr('y2', yScale(q3));
       g.append('line')
-       .attr('class', 'boxplot median')
-       .attr('x1', cx - 10)
-       .attr('x2', cx + 10)
-       .attr('y1', yScale(max))
-       .attr('y2', yScale(max));
+       .attr('class','boxplot median')
+       .attr('x1', cx - 10).attr('x2', cx + 10)
+       .attr('y1', yScale(max)).attr('y2', yScale(max));
 
-      // Lower whisker
+      // 下须
       g.append('line')
-       .attr('class', 'boxplot median')
-       .attr('x1', cx)
-       .attr('x2', cx)
-       .attr('y1', yScale(min))
-       .attr('y2', yScale(q1));
+       .attr('class','boxplot median')
+       .attr('x1', cx).attr('x2', cx)
+       .attr('y1', yScale(min)).attr('y2', yScale(q1));
       g.append('line')
-       .attr('class', 'boxplot median')
-       .attr('x1', cx - 10)
-       .attr('x2', cx + 10)
-       .attr('y1', yScale(min))
-       .attr('y2', yScale(min));
+       .attr('class','boxplot median')
+       .attr('x1', cx - 10).attr('x2', cx + 10)
+       .attr('y1', yScale(min)).attr('y2', yScale(min));
     });
   }
 
-  // Initial rendering
+  // 初次渲染
   drawPlot();
 })
-.catch(error => console.error('Error loading or processing CSV:', error));
+.catch(err => {
+  console.error('Error loading or processing CSV:', err);
+  alert('Failed to load CSV. See console for details.');
+});

@@ -1,21 +1,31 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>HbA1c Violin Plot</title>
+  <title>HbA1c & Gender Glucose Visualization</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body { font-family: sans-serif; }
-    svg { overflow: visible; }
+    svg { overflow: visible; margin-bottom: 40px; }
     .violin { fill: steelblue; opacity: 0.5; }
+    .box { fill: #69b3a2; opacity: 0.6; }
+    .median { stroke: #000; stroke-width: 2px; }
+    .whisker { stroke: #000; }
     .axis path,
     .axis line { stroke: #333; }
     .axis text { font-size: 12px; }
   </style>
 </head>
 <body>
-  <h2>Post-Meal Glucose Δ by HbA1c Group</h2>
-  <svg width="800" height="400"></svg>
+  <h2>Post-Meal Glucose Δ by HbA1c Group and by Gender</h2>
+
+  <h3>Violin Plot (HbA1c Groups)</h3>
+  <svg id="violin" width="800" height="400"></svg>
+
+  <h3>Boxplot (Gender)</h3>
+  <svg id="boxplot" width="800" height="400"></svg>
+
   <script src="script.js"></script>
 </body>
 </html>

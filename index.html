@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 
 <head>
     <meta charset="UTF-8">
-    <title>Glucose Δ vs. HbA1c Categories</title>
+    <title>HbA1c Group Comparison</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: sans-serif;
         }
 
-        #food-select {
+        #feature-select {
             margin: 1em 0;
         }
 
@@ -24,16 +24,16 @@
             stroke-width: 2px;
         }
     </style>
-    <!-- 阻止 favicon 404 -->
+    <!-- 防止 favicon 404 -->
     <link rel="icon" href="data:;base64,=">
 </head>
 
 <body>
-    <label for="food-select">Select Food:</label>
-    <select id="food-select"></select>
-    <svg id="viz" width="700" height="450"></svg>
+    <label for="feature-select">Select Feature:</label>
+    <select id="feature-select"></select>
+    <svg id="chart" width="700" height="450"></svg>
 
-    <!-- 外部脚本 -->
+    <!-- 引入脚本 -->
     <script src="script.js"></script>
 </body>
 

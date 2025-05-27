@@ -1,40 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Violin Plot: ΔGlucose vs. HbA1c</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-
-        svg {
-            overflow: visible;
-        }
-
-        .violin {
-            fill: lightgray;
-            stroke: #333;
-            opacity: 0.6;
-        }
-
-        .dot {
-            fill: steelblue;
-            opacity: 0.5;
-        }
-
-        .axis path,
-        .axis line {
-            stroke: #aaa;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>HbA1c Violin Plot</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    svg { overflow: visible; }
+    .violin { fill: steelblue; opacity: 0.5; }
+    .axis path,
+    .axis line { stroke: #333; }
+    .axis text { font-size: 12px; }
+  </style>
 </head>
-
 <body>
-    <svg id="violin" width="800" height="500"></svg>
-    <script src="script.js"></script>
+  <h2>Post-Meal Glucose Δ by HbA1c Group</h2>
+  <svg width="800" height="400"></svg>
+  <script src="script.js"></script>
 </body>
-
 </html>

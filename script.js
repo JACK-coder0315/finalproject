@@ -1,60 +1,39 @@
-// 配置：CSV 路径 & HbA1c 分箱阈值
+// 配置：CSV 路径 & HbA1c 阈值
 const csvFile = 'project3_w_hba1c.csv';
 const hba1cThresholds = { low: 5.7, medium: 6.5 };
 
 d3.csv(csvFile, d => ({
-  subject: d.subject_id,
-  hba1c:   +d.hba1c,
-  food:    d.food_type,
-  time:    +d.time,
-  glucose: +d.glucose
+  subject: d.ID,                 // CSV 里的“ID”列
+  hba1c:   +d['HbA1c'],          // “HbA1c”列
+  food:    d.logged_food,        // “logged_food”列
+  delta:   +d.grow_in_glu        // 餐后血糖增量 “grow_in_glu”列
 }))
 .then(rawData => {
-  // --- 1. 数据预处理，计算 delta ---
-  const grouped = d3.group(rawData, d => d.subject, d => d.food);
-  const records = [];
+  // 1. 分组计算（此时不用再算 peak–baseline，CSV 已给 delta）
+  const records = rawData.map(d => ({
+    subject: d.subject,
+    food:    d.food,
+    delta:   d.delta,
+    category: d.hba1c < hba1cThresholds.low
+             ? 'low'
+             : (d.hba1c < hba1cThresholds.medium ? 'medium' : 'high')
+  }));
 
-  for (const [subject, foods] of grouped) {
-    // 每个 subject 的 HbA1c 值与类别
-    const hba1cValue = foods.values().next().value[0].hba1c;
-    const category = hba1cValue < hba1cThresholds.low
-      ? 'low'
-      : (hba1cValue < hba1cThresholds.medium ? 'medium' : 'high');
-
-    // 每种 food 的 baseline (time=0) 与 peak
-    for (const [food, entries] of foods) {
-      const baseline = entries.find(d => d.time === 0)?.glucose;
-      const peak     = d3.max(entries, d => d.glucose);
-      if (baseline != null) {
-        records.push({
-          subject,
-          food,
-          delta: peak - baseline,
-          category
-        });
-      }
-    }
-  }
-
-  // --- 2. 构造下拉菜单 ---
+  // 2. 构建下拉菜单
   const foodTypes = Array.from(new Set(records.map(d => d.food)));
   if (foodTypes.length === 0) {
     throw new Error('No food types found – check CSV data and path.');
   }
-
-  // 明确拿到 <select> 元素
   const dropdown = d3.select('#food-select');
   dropdown.selectAll('option')
     .data(foodTypes)
     .join('option')
       .attr('value', d => d)
       .text(d => d);
-
-  // 绑定 change 事件 & 默认值
   dropdown.on('change', drawPlot);
   dropdown.property('value', foodTypes[0]);
 
-  // --- 3. 画布和坐标轴设置 ---
+  // 3. 画布 & 坐标轴
   const svg = d3.select('#viz');
   const margin = { top: 30, right: 20, bottom: 40, left: 50 };
   const width  = +svg.attr('width')  - margin.left - margin.right;
@@ -78,16 +57,15 @@ d3.csv(csvFile, d => ({
   g.append('g')
     .call(d3.axisLeft(yScale));
 
-  // --- 4. 绘制箱线图函数 ---
+  // 4. 绘制箱线图函数
   function drawPlot() {
     const selectedFood = dropdown.property('value');
     const subset       = records.filter(d => d.food === selectedFood);
     const byCategory   = d3.group(subset, d => d.category);
 
-    // 先清除旧的图形
+    // 清除旧图
     g.selectAll('.boxplot').remove();
 
-    // 对每个类别分别画箱线
     byCategory.forEach((vals, category) => {
       const arr    = vals.map(d => d.delta).sort(d3.ascending);
       const q1     = d3.quantile(arr, 0.25);
@@ -134,10 +112,10 @@ d3.csv(csvFile, d => ({
     });
   }
 
-  // 初次渲染
+  // 初始渲染
   drawPlot();
 })
 .catch(err => {
   console.error('Error loading or processing CSV:', err);
-  alert('Failed to load CSV. See console for details.');
+  alert('Failed to load CSV – check console for details.');
 });

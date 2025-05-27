@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Postprandial Glucose Increase vs. HbA1c Categories</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+    #food-select {
+      margin: 1em 0;
+    }
+    .boxplot {
+      fill: #ccc;
+      stroke: #333;
+    }
+    .median {
+      stroke: #000;
+      stroke-width: 2px;
+    }
+  </style>
+</head>
+<body>
+  <label for="food-select">Select Food:</label>
+  <select id="food-select"></select>
+  <svg id="viz" width="700" height="450"></svg>
+  <script src="script.js"></script>
+</body>
+</html>

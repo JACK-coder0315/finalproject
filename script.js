@@ -1,6 +1,7 @@
 // script.js
 
 const csvFile = 'project3_w_hba1c.csv';
+
 const svg = d3.select('#violin'),
       margin = { top: 40, right: 30, bottom: 50, left: 60 },
       width  = +svg.attr('width')  - margin.left - margin.right,
@@ -9,8 +10,8 @@ const svg = d3.select('#violin'),
              .attr('transform', `translate(${margin.left},${margin.top})`);
 
 // Epanechnikov 核函数
-function kernelEpanechnikov(k) {
-  return v => Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+function kernelEpanechnikov(bw) {
+  return v => Math.abs(v /= bw) <= 1 ? 0.75 * (1 - v * v) / bw : 0;
 }
 // KDE 估计器
 function kernelDensityEstimator(kernel, X) {
@@ -22,22 +23,22 @@ d3.csv(csvFile, d => ({
   delta: +d.grow_in_glu
 }))
 .then(data => {
-  // 过滤正值
+  // 只保留正值
   const pts = data.filter(d => d.delta > 0 && !isNaN(d.hba1c));
 
-  // x 轴：HbA1c 连续
+  // 1. x 轴：HbA1c 连续刻度
   const x = d3.scaleLinear()
               .domain(d3.extent(pts, d => d.hba1c))
               .nice()
               .range([0, width]);
 
-  // y 轴：delta
+  // 2. y 轴：delta 刻度
   const y = d3.scaleLinear()
               .domain([0, d3.max(pts, d => d.delta)])
               .nice()
               .range([height, 0]);
 
-  // 将 HbA1c 分成 20 箱
+  // 3. 按 HbA1c 分成 20 个 bin
   const binGen = d3.bin()
                    .domain(x.domain())
                    .value(d => d.hba1c)
@@ -45,29 +46,37 @@ d3.csv(csvFile, d => ({
 
   const bins = binGen(pts);
 
-  // 计算每个箱子的像素宽度
-  const binWidth = x(bins[0].x1) - x(bins[0].x0);
+  // 4. 计算 bin 的像素宽度
+  //    用 bin[0].x0/x1 映射到像素，求差值
+  let binWidth = 0;
+  if (bins.length > 0 && bins[0].x1 != null) {
+    binWidth = x(bins[0].x1) - x(bins[0].x0);
+  }
 
-  // KDE 带宽选取为 delta 轴范围 / 20
+  // 5. KDE 带宽：以 delta 轴范围 / 20 为例
+  const bw = (y.domain()[0] === y.domain()[1]) 
+             ? 1 
+             : (y.domain()[1] - y.domain()[0]) / 20;
+
   const kde = kernelDensityEstimator(
-    kernelEpanechnikov((y.domain()[1] - y.domain()[0]) / 20),
+    kernelEpanechnikov(bw),
     y.ticks(50)
   );
 
-  // 给每个箱添加 density 数组
+  // 为每个 bin 计算 density 数组
   bins.forEach(b => {
     b.density = kde(b.map(d => d.delta));
   });
 
-  // 最大密度用于归一化宽度
-  const maxDensity = d3.max(bins, b => d3.max(b.density, dd => dd[1]));
+  // 找到最大 density，用于归一化宽度
+  const maxDensity = d3.max(bins, b => d3.max(b.density, dd => dd[1])) || 1;
 
-  // 宽度比例尺
+  // 宽度比例尺：[0, maxDensity] → [0, binWidth*0.9]
   const widthScale = d3.scaleLinear()
                        .domain([0, maxDensity])
                        .range([0, binWidth * 0.9]);
 
-  // 绘制坐标轴
+  // 6. 绘坐标轴
   g.append('g')
    .attr('class', 'axis')
    .attr('transform', `translate(0,${height})`)
@@ -77,12 +86,12 @@ d3.csv(csvFile, d => ({
    .attr('class', 'axis')
    .call(d3.axisLeft(y));
 
-  // 绘制小提琴
+  // 7. 绘制小提琴
   bins.forEach(bin => {
-    if (bin.length === 0) return;
+    if (!bin.length) return;  // 空 bin 跳过
 
     const center = (bin.x0 + bin.x1) / 2;
-    const vd     = bin.density; // [[y, density], ...]
+    const vd     = bin.density;  // [[y, density], ...]
 
     // 右侧轮廓
     const areaR = d3.area()
@@ -109,7 +118,7 @@ d3.csv(csvFile, d => ({
      .attr('d', areaL);
   });
 
-  // 叠加散点（jitter 宽度 = binWidth * 0.5）
+  // 8. 叠加散点（jitter = binWidth*0.5）
   g.append('g')
    .selectAll('circle')
    .data(pts)
@@ -119,7 +128,7 @@ d3.csv(csvFile, d => ({
      .attr('cy', d => y(d.delta))
      .attr('r', 2);
 
-  // 标题
+  // 9. 标题
   svg.append('text')
      .attr('x', margin.left + width / 2)
      .attr('y', margin.top / 2)
@@ -128,6 +137,6 @@ d3.csv(csvFile, d => ({
      .text('Violin Plot of 2-hr ΔGlucose vs. HbA1c');
 })
 .catch(err => {
-  console.error(err);
-  alert('Failed to load or parse CSV—see console.');
+  console.error('Error loading CSV:', err);
+  alert('Failed to load CSV—check console.');
 });

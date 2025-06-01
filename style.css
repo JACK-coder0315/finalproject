@@ -219,9 +219,10 @@ nav#navbar a:hover {
    1. 每个 Section 的统一样式
    ======================================================================== */
 .section-container {
-  padding: 100px 40px 60px;
   max-width: 1000px;
-  margin: 0 auto;   /* 保证包含该类的节是水平居中的 */
+  margin: 0 auto;
+  padding: 100px 40px 60px;
+  /* …其他样式… */
 }
 
 .section-container h1,

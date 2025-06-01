@@ -180,17 +180,6 @@ nav#navbar a:hover {
   overflow: hidden;
 }
 
-.graphic-container .main-image {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 260px;   /* 根据实际插画自行调整 */
-  height: auto;
-  object-fit: contain;
-}
-
-/* 装饰性小图标 */
 .decor-icon {
   position: absolute;
   width: 40px;
@@ -250,7 +239,7 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   2. 两栏布局：左侧总结文字，右侧图表（关键修改）
+   2. 两栏布局：左侧总结文字，右侧图表
    ======================================================================== */
 .two-column {
   display: flex;                    /* 强制水平并排 */
@@ -324,11 +313,6 @@ nav#navbar a:hover {
 .chart-container .caption {
   margin-top: 4px;
 }
-
-/* ========================================================================
-   3. 滑块容器 (Age Slider) —— 已移除
-   ======================================================================== */
-/* 不再使用折线图，不需要这一部分 */
 
 /* ========================================================================
    Tooltip 样式
@@ -428,4 +412,3 @@ nav#navbar a:hover {
     margin: 5px 10px;
   }
 }
-

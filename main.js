@@ -21,17 +21,17 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (d.hbA1c < 6.5) d.status = 'prediabetes';
       else d.status = 'diabetes';
 
-      // 年龄分组：0-18, 20-40, 40-60, 60-80
-      if (d.age <= 18) {
-        d.ageGroup = '0–18';
-      } else if (d.age > 18 && d.age <= 40) {
+      // 年龄分组：0-20, 20-40, 40-60, 60-80
+      if (d.age <= 20) {
+        d.ageGroup = '0–20';
+      } else if (d.age > 20 && d.age <= 40) {
         d.ageGroup = '20–40';
       } else if (d.age > 40 && d.age <= 60) {
         d.ageGroup = '40–60';
       } else if (d.age > 60 && d.age <= 80) {
         d.ageGroup = '60–80';
       } else {
-        d.ageGroup = 'Other';
+        d.ageGroup = 'Other';  // 若有超出 80 岁的数据，可放这里
       }
     });
 
@@ -39,8 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     drawHistogram(rawData);
     drawAgeViolinGenderBox(rawData);
     drawRiskCurve(rawData);
-    // 如果不需要箱线＋小提琴图组合，就直接注释掉下面这一行：
-    // drawViolinBoxPlot(rawData);
   }).catch(error => {
     console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
   });
@@ -61,9 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* =========================================================================
    1. 人群 HbA1c 分布 —— 动态直方图
-   说明：
-   - 初始每个柱子从底部“长出”；
-   - 自动循环展示：all → normal → prediabetes → diabetes → all。
    ========================================================================= */
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
@@ -185,17 +180,18 @@ function drawHistogram(data) {
   }
 }
 
+
 /* =========================================================================
    2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
    ========================================================================= */
 function drawAgeViolinGenderBox(data) {
-  // 过滤出需要的四个年龄组（0-18, 20-40, 40-60, 60-80）
-  const ageBins = ['0–18', '20–40', '40–60', '60–80'];
+  // 过滤出需要的四个年龄组（0-20, 20-40, 40-60, 60-80）
+  const ageBins = ['0–20', '20–40', '40–60', '60–80'];
   // 准备每个年龄段的 HbA1c 数组
   const ageGrouped = {};
   ageBins.forEach(bin => ageGrouped[bin] = []);
   data.forEach(d => {
-    if (ageGrouped[d.ageGroup]) {
+    if (ageGrouped[d.ageGroup] !== undefined) {
       ageGrouped[d.ageGroup].push(d.hbA1c);
     }
   });
@@ -222,7 +218,7 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：年份组
+    // x 轴：年龄组
     const x = d3.scaleBand()
       .domain(ageBins)
       .range([0, width])
@@ -234,7 +230,7 @@ function drawAgeViolinGenderBox(data) {
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
       .range([height, 0]);
 
-    // x 轴和 y 轴
+    // 绘制坐标轴
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
@@ -266,7 +262,7 @@ function drawAgeViolinGenderBox(data) {
       };
     }
 
-    // 为每个年龄段计算密度
+    // 为每个年龄组计算密度
     const xTicks = d3.range(d3.min(allHbA1c), d3.max(allHbA1c) + 0.1, 0.1);
     const allDensities = [];
     ageBins.forEach(bin => {
@@ -281,7 +277,7 @@ function drawAgeViolinGenderBox(data) {
     });
 
     // 找到最大的密度值，用于缩放
-    const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]));
+    const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]) || 0);
 
     // 用来绘制小提琴图的水平尺度
     const xNum = d3.scaleLinear()
@@ -321,11 +317,11 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 
-  // 2) 绘制性别箱线图（Gender Box Plot）
+  // 2) 绘制性别箱线图（Gender Box Plot），高度与上面相同
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
-    const height = 200 - margin.top - margin.bottom; // 箱线图高度小一些
+    const height = 350 - margin.top - margin.bottom; // 与小提琴图保持相同高度
 
     const svg = d3.select('#genderBoxPlot')
       .append('svg')
@@ -340,7 +336,7 @@ function drawAgeViolinGenderBox(data) {
       .range([0, width])
       .padding(0.4);
 
-    // y 轴：HbA1c 范围，和上面一样
+    // y 轴：HbA1c 范围，与上面一致
     const allHbA1c = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
@@ -437,7 +433,6 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 }
-
 
 /* =========================================================================
    3. HbA1c vs. Diabetes Risk Curve —— 动态散点 + 描边曲线 + 网格线淡入 + Tooltip
@@ -544,10 +539,10 @@ function drawRiskCurve(data) {
     .attr('stroke', '#1f77b4')
     .attr('stroke-width', 2)
     .attr('d', line)
-    .attr('stroke-dasharray', function() {
+    .attr('stroke-dasharray', function () {
       return this.getTotalLength() + ' ' + this.getTotalLength();
     })
-    .attr('stroke-dashoffset', function() {
+    .attr('stroke-dashoffset', function () {
       return this.getTotalLength();
     });
 

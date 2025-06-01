@@ -37,10 +37,11 @@
     <!-- 左侧文字区域 -->
     <div class="hero-text">
       <h1 class="hero-title">
-        The Effect of <span class="highlight">HbA1c</span> on Predicting diabetes
+        The Effect of <span class="highlight">HbA1c</span> on Predicting Diabetes
       </h1>
       <p class="hero-subtitle">
-        Investigating the potential diabetes of people from different age and HbA1c level
+        Investigating how HbA1c levels vary across different age groups and genders, and their implications for
+        early diabetes risk.
       </p>
       <div class="hero-buttons">
         <!-- Data 按钮跳转到 Kaggle 数据集 -->
@@ -79,9 +80,6 @@
         </div>
         <!-- ====== 轮播 (Carousel) 结束 ====== -->
       </div>
-      <!-- 如需装饰图标，可以在这里插入 .decor-icon -->
-      <!-- <div class="decor-icon icon-left">★</div> -->
-      <!-- <div class="decor-icon icon-top-right">✎</div> -->
     </div>
   </section>
 
@@ -91,9 +89,10 @@
   <section id="intro" class="section-container">
     <h1>What is HbA1c and Why Does It Matter?</h1>
     <p>
-      HbA1c (glycated hemoglobin) is formed when glucose binds to hemoglobin in red blood cells. Since red blood cells
-      live about 120 days, HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is
-      used both for diagnosing diabetes and for monitoring long-term glucose control.
+      HbA1c (glycated hemoglobin) is a biomarker formed when glucose binds to hemoglobin in red blood cells. Because
+      red blood cells live for about 120 days, HbA1c provides a reliable measure of average blood glucose levels over
+      the preceding 2–3 months. Clinically, HbA1c is widely used for diagnosing diabetes, identifying prediabetes,
+      and monitoring long-term glycemic control.
       <br /><br />
       <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
       <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
@@ -103,10 +102,10 @@
       In this interactive visualization, we will explore:
     <ol>
       <li>Population-level distribution of HbA1c</li>
-      <li>HbA1c distribution by age groups</li>
-      <li>HbA1c distribution by gender</li>
-      <li>The relationship between HbA1c and probability of developing type 2 diabetes</li>
-      <li>Example individual trajectories from normal to prediabetes to diabetes</li>
+      <li>How HbA1c varies across defined age groups</li>
+      <li>Comparison of HbA1c by gender (male vs. female)</li>
+      <li>The relationship between HbA1c and the probability of developing type 2 diabetes</li>
+      <li>Example individual trajectories illustrating progression from normal to prediabetes to diabetes</li>
     </ol>
     </p>
   </section>
@@ -120,8 +119,10 @@
       <div class="summary-text">
         <h2>Key Statistics</h2>
         <p>
-          Dataset Summary: In this dataset, we have <strong>10,000 participants</strong>
-          who provided both HbA1c and demographic data.
+          <strong>Dataset Summary:</strong><br />
+          This dataset contains <strong>10,000 participants</strong> who have both HbA1c measurements and
+          demographic attributes (age, gender, etc.). We categorized each subject into one of three HbA1c status
+          groups based on standard clinical thresholds.
         </p>
         <div class="stats-grid">
           <div class="stat-item">
@@ -141,6 +142,11 @@
             <p>Diabetes<br/>(HbA1c ≥ 6.5)</p>
           </div>
         </div>
+        <p>
+          The animation cycles through each subgroup (all → normal → prediabetes → diabetes → all). This oscillation
+          underscores that although most individuals cluster around normal HbA1c levels, a significant fraction
+          resides in the prediabetes range, highlighting the importance of timely screening and intervention.
+        </p>
       </div>
 
       <!-- 右侧：Population-Level HbA1c Distribution 可视化 -->
@@ -148,7 +154,7 @@
         <h2>Population‐Level HbA1c Distribution</h2>
         <div id="histogram"></div>
         <p class="caption">
-          Figure 1. Distribution of HbA1c values in a representative cohort.
+          Figure 1. Distribution of HbA1c values across the entire cohort.
         </p>
       </div>
     </div>
@@ -159,26 +165,44 @@
        ============================== -->
   <section id="ageViolin" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Age & Gender 分析说明 -->
+      <!-- 左侧：Age & Gender Analysis 说明 (全英文，详细版) -->
       <div class="summary-text">
         <h2>Age &amp; Gender Analysis</h2>
         <p>
-          We categorized ages into four bins: <strong>0–18</strong>, <strong>20–40</strong>, <strong>40–60</strong>, <strong>60–80</strong> 
-          and plotted HbA1c distributions (violin plots) for each age group. 同时，我们还绘制了性别（Male / Female）的 HbA1c 
-          箱线图，以便比较男女两组在 HbA1c 上的分布差异。
+          In order to better understand how HbA1c distribution varies across different segments of the population, we
+          performed two focused analyses:
         </p>
         <ul>
-          <li><strong>Age Groups:</strong> 0–18, 20–40, 40–60, 60–80</li>
-          <li><strong>Gender Groups:</strong> Male, Female</li>
+          <li>
+            <strong>Age Group Violin Plot:</strong> We divided the entire cohort into four distinct age brackets:
+            <strong>0–20 years, 20–40 years, 40–60 years, and 60–80 years</strong>. For each bracket, we collected all
+            HbA1c measurements and generated a violin plot that visualizes the full distribution density of HbA1c
+            values within that age range. This allows us to see the shape, spread, and symmetry of the data, as well
+            as any potential multimodal patterns.
+          </li>
+          <li>
+            <strong>Gender Box Plot:</strong> We also segregated participants by gender—<strong>Male</strong> and
+            <strong>Female</strong>—and constructed a box plot for each category, illustrating the median, interquartile
+            range (IQR), and whiskers based on standard 1.5×IQR rules. This comparison reveals any skewness, outliers,
+            and general spread differences in HbA1c between men and women.
+          </li>
         </ul>
-        <p>通过这些图，我们可以直观地了解各年龄段以及不同性别人群的 HbA1c 分布情况。</p>
+        <p>
+          By examining these two plots side by side, we can identify whether certain age brackets exhibit elevated or
+          more variable HbA1c levels, and whether there is any notable difference between male and female HbA1c
+          distributions. Such insights can inform targeted screening strategies and gender‐specific intervention
+          plans.
+        </p>
       </div>
 
-      <!-- 右侧：两个并排的图，顶部小提琴图，底部箱线图 -->
+      <!-- 右侧：两个图并排，顶部小提琴图，底部箱线图 -->
       <div class="chart-container">
         <h2>HbA1c by Age Group &amp; Gender</h2>
+        <!-- Violin Plot -->
         <div id="violinPlot"></div>
         <p class="caption">Figure 2a. Violin Plot: HbA1c Distribution by Age Group</p>
+
+        <!-- Box Plot (height 与小提琴图相同) -->
         <div id="genderBoxPlot" style="margin-top: 2rem;"></div>
         <p class="caption">Figure 2b. Box Plot: HbA1c Distribution by Gender</p>
       </div>

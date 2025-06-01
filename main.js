@@ -28,13 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
       d.hba1cStatus = d.status; // 直接复用之前的 status
     });
 
-    // 执行可视化
+    // 执行各个可视化函数
     drawHistogram(rawData);
     drawAgeTrend(rawData);
     drawRiskCurve(rawData);
     drawViolinBoxPlot(rawData);
 
-    // 新增：按性别和按 HbA1c 状态的小提琴＋箱线图
+    // 按 性别 和 按 HbA1c 状态 绘制小提琴＋箱线图
     drawViolinByGender(rawData);
     drawViolinByStatus(rawData);
 
@@ -52,15 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
    说明：
    - 初始每个柱子从底部“长出”；
    - 自动循环展示：all → normal → prediabetes → diabetes → all。
-   修正点：先获取到柱子的 Selection，再给它绑定 .on()，最后再做 transition()。
    ========================================================================= */
 function drawHistogram(data) {
-  // 画布尺寸及边距
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
   const width = 800 - margin.left - margin.right;
   const height = 350 - margin.top - margin.bottom;
 
-  // 创建 SVG
   const svg = d3.select('#histogram')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -68,13 +65,11 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 所有数据、normal、prediabetes、diabetes 对应的子集
   const dataAll = data;
   const dataNormal = data.filter(d => d.status === 'normal');
   const dataPre = data.filter(d => d.status === 'prediabetes');
   const dataDia = data.filter(d => d.status === 'diabetes');
 
-  // 构造 histogram 生成器（共用 x 轴域）
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
@@ -88,46 +83,38 @@ function drawHistogram(data) {
     .domain(x.domain())
     .thresholds(x.ticks(30));
 
-  // 预先计算好各分类的 bins
   const binsAll = histogramGen(dataAll);
   const binsNor = histogramGen(dataNormal);
   const binsPre = histogramGen(dataPre);
   const binsDia = histogramGen(dataDia);
 
-  // 初始用 binsAll 为数据
   let currentBins = binsAll;
 
-  // y 轴（根据 binsAll 的最大值）
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // 绘制 x 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // 绘制 y 轴
   const yAxis = svg.append('g')
     .call(d3.axisLeft(y));
 
-  // Tooltip
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 创建初始 rect（它们还没有动画）
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
     .append('rect')
       .attr('x', d => x(d.x0) + 1)
       .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
-      .attr('y', height)      // 起始在底部
+      .attr('y', height)
       .attr('height', 0)
       .attr('fill', '#69b3a2');
 
-  // 在柱子上绑定鼠标事件（注意：必须在 transition 之外）
   rects
     .on('mouseover', function(event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
@@ -142,13 +129,11 @@ function drawHistogram(data) {
       tooltip.style('opacity', 0);
     });
 
-  // 初始动画：柱子“从底部长出来”
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // 循环类别顺序
   const categories = [
     { name: 'all', bins: binsAll },
     { name: 'normal', bins: binsNor },
@@ -157,19 +142,15 @@ function drawHistogram(data) {
   ];
   let idx = 0;
 
-  // 定时器，每 2.5 秒切换一次
   d3.interval(() => {
     idx = (idx + 1) % categories.length;
     updateHistogram(categories[idx].bins);
   }, 2500);
 
-  // 更新函数：过渡更新 y 轴和柱子高度
   function updateHistogram(nextBins) {
-    // 更新 y 轴 scale domain
     y.domain([0, d3.max(nextBins, d => d.length)]).nice();
     yAxis.transition().duration(800).call(d3.axisLeft(y));
 
-    // 绑定新数据并过渡
     svg.selectAll('rect')
       .data(nextBins)
       .transition()
@@ -183,12 +164,8 @@ function drawHistogram(data) {
 
 /* =========================================================================
    2. HbA1c 随年龄变化趋势 —— 带动态动画的折线图 + 自动滑块
-   说明：
-   - 折线有“描边动画”，误差带淡入
-   - 滑块初始自动播放，每隔 300ms 跑一个年龄
    ========================================================================= */
 function drawAgeTrend(data) {
-  // 先计算每个整数年龄的 mean 和 std
   const ageGroups = d3.rollups(
     data,
     v => {
@@ -206,12 +183,10 @@ function drawAgeTrend(data) {
     std: stats.std
   })).sort((a, b) => a.age - b.age);
 
-  // 画布尺寸及边距
   const margin = { top: 20, right: 60, bottom: 40, left: 50 };
   const width = 800 - margin.left - margin.right;
   const height = 350 - margin.top - margin.bottom;
 
-  // 创建 SVG
   const svg = d3.select('#lineChart')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -219,12 +194,10 @@ function drawAgeTrend(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴：年龄
   const x = d3.scaleLinear()
     .domain(d3.extent(ageTrend, d => d.age))
     .range([0, width]);
 
-  // y 轴：平均 HbA1c ± std
   const y = d3.scaleLinear()
     .domain([
       d3.min(ageTrend, d => d.mean - d.std) - 0.2,
@@ -232,7 +205,6 @@ function drawAgeTrend(data) {
     ])
     .range([height, 0]);
 
-  // 定义折线和误差带 area
   const line = d3.line()
     .x(d => x(d.age))
     .y(d => y(d.mean))
@@ -244,7 +216,6 @@ function drawAgeTrend(data) {
     .y1(d => y(d.mean + d.std))
     .curve(d3.curveMonotoneX);
 
-  // 绘制折线，但先隐藏（描边动画）
   const path = svg.append('path')
     .datum(ageTrend)
     .attr('fill', 'none')
@@ -260,7 +231,6 @@ function drawAgeTrend(data) {
       .duration(1500)
       .attr('stroke-dashoffset', 0);
 
-  // 绘制误差带（opacity=0，稍后淡入）
   const areaPath = svg.append('path')
     .datum(ageTrend)
     .attr('fill', '#ff7f0e')
@@ -271,14 +241,12 @@ function drawAgeTrend(data) {
     .transition().delay(800).duration(800)
     .attr('opacity', 0.2);
 
-  // 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x).ticks(7));
   svg.append('g')
     .call(d3.axisLeft(y));
 
-  // 坐标轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
@@ -291,7 +259,6 @@ function drawAgeTrend(data) {
     .attr('text-anchor', 'middle')
     .text('Mean HbA1c (%)');
 
-  // 滑块 & 高亮点
   const ageSlider = d3.select('#ageSlider');
   const ageValueLabel = d3.select('#ageValue');
 
@@ -316,7 +283,6 @@ function drawAgeTrend(data) {
     ageValueLabel.text(chosenAge);
   }
 
-  // 用户手动拖动时停止自动播放
   let autoTimer;
   function startAutoPlay() {
     let i = 0;
@@ -337,7 +303,6 @@ function drawAgeTrend(data) {
     updateAge(this.value);
   });
 
-  // 初始显示 & 自动播放
   updateAge(d3.min(ages));
   startAutoPlay();
 }
@@ -348,12 +313,10 @@ function drawAgeTrend(data) {
    3. HbA1c vs. Diabetes Risk Curve —— 动态散点 + 描边曲线 + 网格线淡入 + Tooltip
    ========================================================================= */
 function drawRiskCurve(data) {
-  // 四舍五入到 0.1
   data.forEach(d => {
     d.hbA1cRound = Math.round(d.hbA1c * 10) / 10;
   });
 
-  // 按四舍五入后分组，计算 diabetes==1 的比例
   const riskGroups = d3.rollups(
     data,
     v => v.filter(d => d.diabetes === 1).length / v.length,
@@ -364,12 +327,10 @@ function drawRiskCurve(data) {
     risk_prob: prob
   })).sort((a, b) => a.hbA1c - b.hbA1c);
 
-  // 画布尺寸及边距
   const margin = { top: 20, right: 60, bottom: 40, left: 50 };
   const width = 800 - margin.left - margin.right;
   const height = 350 - margin.top - margin.bottom;
 
-  // 创建 SVG
   const svg = d3.select('#riskCurve')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -377,17 +338,14 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴：hbA1c 值
   const x = d3.scaleLinear()
     .domain(d3.extent(riskData, d => d.hbA1c))
     .range([0, width]);
 
-  // y 轴：概率 0–1
   const y = d3.scaleLinear()
     .domain([0, 1])
     .range([height, 0]);
 
-  // 背景网格线（先隐藏）
   const yGrid = d3.axisLeft(y)
     .tickSize(-width)
     .tickFormat('')
@@ -398,16 +356,13 @@ function drawRiskCurve(data) {
     .attr('opacity', 0)
     .call(yGrid);
 
-  // x 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // y 轴
   svg.append('g')
     .call(d3.axisLeft(y).ticks(5));
 
-  // 坐标轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
@@ -420,12 +375,10 @@ function drawRiskCurve(data) {
     .attr('text-anchor', 'middle')
     .text('Risk Probability');
 
-  // Tooltip
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 绘制散点，先让 r = 0，再逐一“长出”
   const circles = svg.selectAll('circle')
     .data(riskData)
     .enter()
@@ -436,11 +389,10 @@ function drawRiskCurve(data) {
       .attr('fill', '#d62728');
 
   circles.transition()
-      .delay((d, i) => i * 30) // 逐个延迟
+      .delay((d, i) => i * 30)
       .duration(500)
       .attr('r', 4);
 
-  // 绘制连线（先隐藏，通过描边动画再显现）
   const line = d3.line()
     .x(d => x(d.hbA1c))
     .y(d => y(d.risk_prob))
@@ -459,19 +411,16 @@ function drawRiskCurve(data) {
       return this.getTotalLength();
     });
 
-  // 延迟散点动画完毕后再描边连线
   riskPath.transition()
     .delay(riskData.length * 30 + 200)
     .duration(1200)
     .attr('stroke-dashoffset', 0);
 
-  // 网格线淡入
   gridGroup.transition()
     .delay(riskData.length * 30 + 800)
     .duration(800)
     .attr('opacity', 1);
 
-  // 悬停交互：散点放大 + Tooltip
   circles
     .on('mouseover', function(event, d) {
       d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
@@ -490,23 +439,19 @@ function drawRiskCurve(data) {
 
 
 /* =========================================================================
-   4. 血糖浓度分布 —— 小提琴 + 箱线图组合
-   分组方式：按 ageDecade（10 岁段）和 hba1cStatus（三个状态）分组
+   4. 血糖浓度分布 —— 小提琴 + 箱线图组合（按 ageDecade & hba1cStatus 分组）
    ========================================================================= */
 function drawViolinBoxPlot(data) {
-  // 提取所有年龄段和 HbA1c 状态
   const ageGroups = Array.from(new Set(data.map(d => d.ageDecade))).sort((a, b) => {
     const a0 = +a.split('–')[0], b0 = +b.split('–')[0];
     return a0 - b0;
   });
   const hbaStates = ['normal', 'prediabetes', 'diabetes'];
 
-  // 画布尺寸及边距
   const margin = { top: 20, right: 80, bottom: 60, left: 60 };
   const width = 900 - margin.left - margin.right;
   const height = 400 - margin.top - margin.bottom;
 
-  // 创建 SVG
   const svg = d3.select('#violinBoxPlot')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -514,7 +459,6 @@ function drawViolinBoxPlot(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x0：按年龄段划分，x1：按 HbA1c 状态划分
   const x0 = d3.scaleBand()
     .domain(ageGroups)
     .range([0, width])
@@ -525,7 +469,6 @@ function drawViolinBoxPlot(data) {
     .range([0, x0.bandwidth()])
     .padding(0.1);
 
-  // y 轴：血糖浓度范围
   const bloodMin = d3.min(data, d => d.blood_glucose);
   const bloodMax = d3.max(data, d => d.blood_glucose);
   const y = d3.scaleLinear()
@@ -533,7 +476,6 @@ function drawViolinBoxPlot(data) {
     .nice()
     .range([height, 0]);
 
-  // 绘制 x 轴、y 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x0))
@@ -544,7 +486,6 @@ function drawViolinBoxPlot(data) {
   svg.append('g')
     .call(d3.axisLeft(y));
 
-  // 轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 10)
@@ -558,7 +499,6 @@ function drawViolinBoxPlot(data) {
     .attr('text-anchor', 'middle')
     .text('Blood Glucose Level (mg/dL)');
 
-  // Kernel Density Estimator 函数
   function kernelDensityEstimator(kernel, X) {
     return function(V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -571,10 +511,8 @@ function drawViolinBoxPlot(data) {
     };
   }
 
-  // 取样点列表（纵向）
   const xTicks = d3.range(bloodMin, bloodMax + 1, 1);
 
-  // 计算每个 (ageDecade, hba1cStatus) 子集的 KDE 与箱线
   const allGroups = [];
   ageGroups.forEach(ad => {
     hbaStates.forEach(st => {
@@ -583,16 +521,13 @@ function drawViolinBoxPlot(data) {
         .map(d => d.blood_glucose);
 
       if (arr.length === 0) {
-        // 如果该组合没有样本，则仍加一个空占位
         allGroups.push({ ageDecade: ad, status: st, density: [], box: null });
         return;
       }
 
-      // KDE
       const kde = kernelDensityEstimator(kernelEpanechnikov(5), xTicks);
-      const density = kde(arr); // [[val1, dens1], [val2, dens2], ...]
+      const density = kde(arr);
 
-      // 箱线统计
       const sorted = arr.sort(d3.ascending);
       const q1 = d3.quantile(sorted, 0.25);
       const median = d3.quantile(sorted, 0.5);
@@ -610,35 +545,29 @@ function drawViolinBoxPlot(data) {
     });
   });
 
-  // 计算所有 density 的最大值，用于制定小提琴宽度比例尺
   const maxDensity = d3.max(allGroups, g => g.density.length ? d3.max(g.density, d => d[1]) : 0);
 
-  // 小提琴水平宽度比例尺
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
     .range([0, x1.bandwidth() / 2]);
 
-  // 绘制每个组合块
   const groupContainer = svg.append('g')
     .selectAll('g')
     .data(allGroups)
     .enter()
     .append('g')
-      // 将每个子组沿 X 轴移动到对应位置
       .attr('transform', d => `
         translate(
           ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2}, 
           0
         )
       `)
-      .attr('opacity', 0);  // 先设为透明，之后依次淡入
+      .attr('opacity', 0);
 
-  // 绘制小提琴图（上下对称）
   groupContainer.each(function(d, i) {
     const grp = d3.select(this);
-    if (!d.density.length) return; // 没有数据时跳过
+    if (!d.density.length) return;
 
-    // 上半边
     grp.append('path')
       .datum(d.density)
       .attr('d', d3.area()
@@ -647,9 +576,10 @@ function drawViolinBoxPlot(data) {
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
       .attr('fill', '#69b3a2')
-      .attr('opacity', 0.4);
+      .attr('stroke', '#2a7f65')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
 
-    // 下半边（镜像）
     grp.append('path')
       .datum(d.density)
       .attr('d', d3.area()
@@ -658,94 +588,82 @@ function drawViolinBoxPlot(data) {
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
       .attr('fill', '#69b3a2')
-      .attr('opacity', 0.4);
+      .attr('stroke', '#2a7f65')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
   });
 
-  // 绘制箱线图
   groupContainer.each(function(d, i) {
     const grp = d3.select(this);
-    if (!d.box) return; // 无数据时跳过
+    if (!d.box) return;
 
     const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
     const boxW = x1.bandwidth() * 0.5;
 
-    // 箱体
     grp.append('rect')
       .attr('x', -boxW / 2)
       .attr('y', y(q3))
       .attr('width', boxW)
       .attr('height', y(q1) - y(q3))
-      .attr('stroke', '#000')
-      .attr('fill', '#fff');
+      .attr('stroke', '#264653')
+      .attr('fill', '#69b3a2')
+      .attr('opacity', 0.8);
 
-    // 中位线
     grp.append('line')
       .attr('x1', -boxW / 2)
       .attr('x2', boxW / 2)
       .attr('y1', y(median))
       .attr('y2', y(median))
-      .attr('stroke', '#000');
+      .attr('stroke', '#264653')
+      .attr('stroke-width', 2);
 
-    // 须竖线
     grp.append('line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(q3))
-      .attr('stroke', '#000');
+      .attr('stroke', '#264653')
+      .attr('stroke-width', 1);
     grp.append('line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', y(q1))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#000');
+      .attr('stroke', '#264653')
+      .attr('stroke-width', 1);
 
-    // 须端横线
     grp.append('line')
       .attr('x1', -boxW / 4)
       .attr('x2', boxW / 4)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(upperWhisker))
-      .attr('stroke', '#000');
+      .attr('stroke', '#264653')
+      .attr('stroke-width', 1);
     grp.append('line')
       .attr('x1', -boxW / 4)
       .attr('x2', boxW / 4)
       .attr('y1', y(lowerWhisker))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#000');
+      .attr('stroke', '#264653')
+      .attr('stroke-width', 1);
   });
 
-  // 异步淡入每个子组
   groupContainer.transition()
-    .delay((d, i) => i * 200) // 每个子组相隔 200ms 淡入
+    .delay((d, i) => i * 200)
     .duration(800)
     .attr('opacity', 1);
 
-  // 图例：在右侧绘制两个色块，说明小提琴与箱线
   const legend = svg.append('g')
     .attr('transform', `translate(${width + 20}, 20)`);
 
-  // 小提琴
   legend.append('rect')
     .attr('x', 0).attr('y', 0)
     .attr('width', 12).attr('height', 12)
     .attr('fill', '#69b3a2')
-    .attr('opacity', 0.4);
+    .attr('opacity', 0.6);
   legend.append('text')
     .attr('x', 18).attr('y', 12)
-    .text('Violin (Density)')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
-
-  // 箱线
-  legend.append('rect')
-    .attr('x', 0).attr('y', 20)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#fff')
-    .attr('stroke', '#000');
-  legend.append('text')
-    .attr('x', 18).attr('y', 32)
-    .text('Boxplot (Q1/Median/Q3)')
+    .text('Violin + Box')
     .attr('font-size', '12px')
     .attr('alignment-baseline', 'middle');
 }
@@ -755,16 +673,16 @@ function drawViolinBoxPlot(data) {
 /* =========================================================================
    5. 按 性别 分组：绘制 Blood Glucose 的“Violin + Boxplot”
    容器：<div id="violinByGender"></div>
-   逻辑与上面类似，只是分组变量是 d.gender
+   小提琴轮廓、三种颜色填充、箱线内部同色，去除纯白色
    ========================================================================= */
 function drawViolinByGender(rawData) {
-  // 1) 提取所有性别（一般为 "Male"、"Female"）
+  // 1) 提取所有性别（"Female"、"Male"、"Other"）
   const genderGroups = Array.from(new Set(rawData.map(d => d.gender)));
 
   // 2) 画布尺寸
   const margin = { top: 20, right: 60, bottom: 60, left: 60 };
-  const width = 600 - margin.left - margin.right;   // 600px 总宽度，可自行调整
-  const height = 350 - margin.top - margin.bottom;  // 350px 总高度
+  const width = 600 - margin.left - margin.right;   // 可根据需要调整
+  const height = 350 - margin.top - margin.bottom;  // 可根据需要调整
 
   // 3) 创建 SVG
   const svg = d3.select('#violinByGender')
@@ -774,7 +692,7 @@ function drawViolinByGender(rawData) {
     .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 4) 纵向数值范围（Blood Glucose 最小/最大略微扩展一点）
+  // 4) 设置 y 轴：血糖范围
   const bloodMin = d3.min(rawData, d => d.blood_glucose);
   const bloodMax = d3.max(rawData, d => d.blood_glucose);
   const y = d3.scaleLinear()
@@ -782,21 +700,20 @@ function drawViolinByGender(rawData) {
     .nice()
     .range([height, 0]);
 
-  // 5) 横向分组：scaleBand
+  // 5) x 轴：性别分组
   const x = d3.scaleBand()
     .domain(genderGroups)
     .range([0, width])
-    .paddingInner(0.4);  // 分组之间留一些空隙
+    .paddingInner(0.4);
 
   // 6) 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
-
   svg.append('g')
     .call(d3.axisLeft(y));
 
-  // 7) 添加坐标轴标签
+  // 7) 坐标轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 10)
@@ -810,7 +727,7 @@ function drawViolinByGender(rawData) {
     .attr('text-anchor', 'middle')
     .text('Blood Glucose Level (mg/dL)');
 
-  // 8) 准备核密度估计函数（KDE + Epanechnikov Kernel）
+  // 8) 准备 KDE 函数
   function kernelDensityEstimator(kernel, X) {
     return function(V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -823,28 +740,24 @@ function drawViolinByGender(rawData) {
     };
   }
 
-  // 9) 取样点区间：「bloodMin…bloodMax」之间，每隔 1 单位采样一次
+  // 9) 样本点列表
   const xTicks = d3.range(bloodMin, bloodMax + 1, 1);
 
-  // 10) 对每个性别分组，计算该组的密度分布与箱线统计
+  // 10) 构建每个性别分组的密度和箱线
   const allGroups = [];
-  genderGroups.forEach(g => {
-    // 筛出属于该性别的所有血糖数据数组
+  genderGroups.forEach((g, i) => {
     const arr = rawData
       .filter(d => d.gender === g)
       .map(d => d.blood_glucose);
 
     if (arr.length === 0) {
-      // 如果没有数据，则放空占位
       allGroups.push({ group: g, density: [], box: null });
       return;
     }
 
-    // 10.1) KDE
     const kde = kernelDensityEstimator(kernelEpanechnikov(7), xTicks);
-    const density = kde(arr); // 得到 [ [val1, dens1], [val2,dens2], ... ]
+    const density = kde(arr);
 
-    // 10.2) 箱线统计（四分位数 & 须）
     const sorted = arr.sort(d3.ascending);
     const q1 = d3.quantile(sorted, 0.25);
     const median = d3.quantile(sorted, 0.5);
@@ -860,34 +773,48 @@ function drawViolinByGender(rawData) {
     });
   });
 
-  // 11) 计算所有组的“最大密度值”，用于统一比例缩放
+  // 11) 计算最大密度
   const maxDensity = d3.max(allGroups, d => 
     d.density.length ? d3.max(d.density, pt => pt[1]) : 0
   );
 
-  // 12) 水平缩放比例尺：density → [0, x.bandwidth()/2]
+  // 12) 小提琴水平缩放
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
     .range([0, x.bandwidth() / 2]);
 
-  // 13) 绘制每个分组的小提琴＋箱线
+  // 13) 定义填充颜色：Female=蓝, Male=黄, Other=深紫
+  const fillColors = {
+    'Female': '#1f77b4',
+    'Male': '#ffcc00',
+    'Other': '#5e4b8b'
+  };
+  const strokeColors = {
+    'Female': '#155d91',
+    'Male': '#b38f00',
+    'Other': '#3e2d65'
+  };
+
+  // 14) 绘制每个性别组的小提琴和箱线
   const groupContainers = svg.selectAll('g.group')
     .data(allGroups)
     .enter()
     .append('g')
-      // 将每个子组移到对应的 x 轴位置，这里我们让小提琴图“水平中心”对齐在 x(group) 中心
       .attr('transform', d => `
         translate(
-          ${x(d.group) + x.bandwidth() / 2},
+          ${x(d.group) + x.bandwidth() / 2}, 
           0
         )
       `)
-      .attr('opacity', 0);  // 先隐藏，等下做依次淡入动画
+      .attr('opacity', 0);
 
-  // 14) 画小提琴（上下对称）
+  // 15) 小提琴轮廓 + 填充
   groupContainers.each(function(d, i) {
     const g = d3.select(this);
     if (!d.density.length) return;
+
+    const fc = fillColors[d.group] || '#999999';
+    const sc = strokeColors[d.group] || '#333333';
 
     // 上半边
     g.append('path')
@@ -897,8 +824,10 @@ function drawViolinByGender(rawData) {
         .x1(pt => 0)
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
-      .attr('fill', '#2a9d8f')
-      .attr('opacity', 0.4);
+      .attr('fill', fc)
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
 
     // 下半边（镜像）
     g.append('path')
@@ -908,26 +837,32 @@ function drawViolinByGender(rawData) {
         .x1(pt => 0)
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
-      .attr('fill', '#2a9d8f')
-      .attr('opacity', 0.4);
+      .attr('fill', fc)
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
   });
 
-  // 15) 画箱线
+  // 16) 在小提琴内部绘制“有填充”的箱线
   groupContainers.each(function(d, i) {
     const g = d3.select(this);
     if (!d.box) return;
 
     const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
-    const boxW = x.bandwidth() * 0.5; // 箱体横宽
+    const boxW = x.bandwidth() * 0.5;
+    const fc = fillColors[d.group] || '#999999';
+    const sc = strokeColors[d.group] || '#333333';
 
-    // 箱体矩形
+    // 箱体填充同色
     g.append('rect')
       .attr('x', -boxW / 2)
       .attr('y', y(q3))
       .attr('width', boxW)
       .attr('height', y(q1) - y(q3))
-      .attr('stroke', '#264653')
-      .attr('fill', '#ffffff');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('fill', fc)
+      .attr('opacity', 0.8);
 
     // 中位线
     g.append('line')
@@ -935,7 +870,8 @@ function drawViolinByGender(rawData) {
       .attr('x2', boxW / 2)
       .attr('y1', y(median))
       .attr('y2', y(median))
-      .attr('stroke', '#264653');
+      .attr('stroke', sc)
+      .attr('stroke-width', 2);
 
     // 须竖线
     g.append('line')
@@ -943,13 +879,15 @@ function drawViolinByGender(rawData) {
       .attr('x2', 0)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(q3))
-      .attr('stroke', '#264653');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
     g.append('line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', y(q1))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#264653');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
 
     // 须端横线
     g.append('line')
@@ -957,48 +895,22 @@ function drawViolinByGender(rawData) {
       .attr('x2', boxW / 4)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(upperWhisker))
-      .attr('stroke', '#264653');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
     g.append('line')
       .attr('x1', -boxW / 4)
       .attr('x2', boxW / 4)
       .attr('y1', y(lowerWhisker))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#264653');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
   });
 
-  // 16) 让每个子组依次淡入
+  // 17) 依次淡入
   groupContainers.transition()
-    .delay((d, i) => i * 200) // 每隔 200ms 显示下一个
+    .delay((d, i) => i * 200)
     .duration(800)
     .attr('opacity', 1);
-
-  // 17) 可选：给图例（Legend）添加一个“Violin = 密度”“Boxplot = 四分位”说明
-  const legend = svg.append('g')
-    .attr('transform', `translate(${width + 20}, 20)`);
-
-  // 小提琴图例
-  legend.append('rect')
-    .attr('x', 0).attr('y', 0)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#2a9d8f')
-    .attr('opacity', 0.4);
-  legend.append('text')
-    .attr('x', 18).attr('y', 12)
-    .text('Violin (Density)')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
-
-  // 箱线图例
-  legend.append('rect')
-    .attr('x', 0).attr('y', 20)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#ffffff')
-    .attr('stroke', '#264653');
-  legend.append('text')
-    .attr('x', 18).attr('y', 32)
-    .text('Boxplot (Q1/Median/Q3)')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
 }
 
 
@@ -1006,7 +918,7 @@ function drawViolinByGender(rawData) {
 /* =========================================================================
    6. 按 HbA1c 状态 分组：绘制 Blood Glucose 的“Violin + Boxplot”
    容器：<div id="violinByStatus"></div>
-   逻辑与 drawViolinByGender 类似，只是分组变量是 d.status
+   颜色也做类似调整，使箱线内部与小提琴同色
    ========================================================================= */
 function drawViolinByStatus(rawData) {
   // 1) 提取所有 HbA1c 状态（"normal"、"prediabetes"、"diabetes"）
@@ -1025,7 +937,7 @@ function drawViolinByStatus(rawData) {
     .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 4) 纵向数值范围（Blood Glucose 最小/最大略微扩展一点）
+  // 4) y 轴范围
   const bloodMin = d3.min(rawData, d => d.blood_glucose);
   const bloodMax = d3.max(rawData, d => d.blood_glucose);
   const y = d3.scaleLinear()
@@ -1033,17 +945,16 @@ function drawViolinByStatus(rawData) {
     .nice()
     .range([height, 0]);
 
-  // 5) 横向分组：scaleBand
+  // 5) x 轴：状态分组
   const x = d3.scaleBand()
     .domain(stateGroups)
     .range([0, width])
-    .paddingInner(0.4);  // 分组之间留空
+    .paddingInner(0.4);
 
   // 6) 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
-
   svg.append('g')
     .call(d3.axisLeft(y));
 
@@ -1061,7 +972,7 @@ function drawViolinByStatus(rawData) {
     .attr('text-anchor', 'middle')
     .text('Blood Glucose Level (mg/dL)');
 
-  // 8) KDE 函数（同上）
+  // 8) KDE 函数
   function kernelDensityEstimator(kernel, X) {
     return function(V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -1074,10 +985,10 @@ function drawViolinByStatus(rawData) {
     };
   }
 
-  // 9) 取样点列表
+  // 9) 取样点
   const xTicks = d3.range(bloodMin, bloodMax + 1, 1);
 
-  // 10) 计算每个状态分组的 KDE 与箱线
+  // 10) 计算每个状态分组的密度与箱线
   const allGroups = [];
   stateGroups.forEach(st => {
     const arr = rawData
@@ -1107,17 +1018,29 @@ function drawViolinByStatus(rawData) {
     });
   });
 
-  // 11) 计算最大密度
+  // 11) 最大密度
   const maxDensity = d3.max(allGroups, d => 
     d.density.length ? d3.max(d.density, pt => pt[1]) : 0
   );
 
-  // 12) 小提琴水平比例尺
+  // 12) 小提琴水平缩放
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
     .range([0, x.bandwidth() / 2]);
 
-  // 13) 绘制组合块
+  // 13) 定义填充颜色：normal=绿色、prediabetes=橙色、diabetes=红色
+  const fillColors = {
+    'normal': '#2a9d8f',
+    'prediabetes': '#e76f51',
+    'diabetes': '#9d0208'
+  };
+  const strokeColors = {
+    'normal': '#1e6e6e',
+    'prediabetes': '#b54a3d',
+    'diabetes': '#6e0105'
+  };
+
+  // 14) 绘制每个状态组的小提琴和箱线
   const groupContainers = svg.append('g')
     .selectAll('g')
     .data(allGroups)
@@ -1131,12 +1054,14 @@ function drawViolinByStatus(rawData) {
       `)
       .attr('opacity', 0);
 
-  // 14) 小提琴图
+  // 15) 小提琴轮廓 + 填充
   groupContainers.each(function(d, i) {
     const g = d3.select(this);
     if (!d.density.length) return;
 
-    // 上半边
+    const fc = fillColors[d.group] || '#999999';
+    const sc = strokeColors[d.group] || '#333333';
+
     g.append('path')
       .datum(d.density)
       .attr('d', d3.area()
@@ -1144,10 +1069,11 @@ function drawViolinByStatus(rawData) {
         .x1(pt => 0)
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
-      .attr('fill', '#e76f51')
-      .attr('opacity', 0.4);
+      .attr('fill', fc)
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
 
-    // 下半边
     g.append('path')
       .datum(d.density)
       .attr('d', d3.area()
@@ -1155,93 +1081,74 @@ function drawViolinByStatus(rawData) {
         .x1(pt => 0)
         .y(pt => y(pt[0]))
         .curve(d3.curveCatmullRom))
-      .attr('fill', '#e76f51')
-      .attr('opacity', 0.4);
+      .attr('fill', fc)
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6);
   });
 
-  // 15) 箱线图
+  // 16) 箱线图同色填充
   groupContainers.each(function(d, i) {
     const g = d3.select(this);
     if (!d.box) return;
 
     const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
     const boxW = x.bandwidth() * 0.5;
+    const fc = fillColors[d.group] || '#999999';
+    const sc = strokeColors[d.group] || '#333333';
 
-    // 箱体
     g.append('rect')
       .attr('x', -boxW / 2)
       .attr('y', y(q3))
       .attr('width', boxW)
       .attr('height', y(q1) - y(q3))
-      .attr('stroke', '#9d0208')
-      .attr('fill', '#ffffff');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1)
+      .attr('fill', fc)
+      .attr('opacity', 0.8);
 
-    // 中位线
     g.append('line')
       .attr('x1', -boxW / 2)
       .attr('x2', boxW / 2)
       .attr('y1', y(median))
       .attr('y2', y(median))
-      .attr('stroke', '#9d0208');
+      .attr('stroke', sc)
+      .attr('stroke-width', 2);
 
-    // 须竖线
     g.append('line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(q3))
-      .attr('stroke', '#9d0208');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
     g.append('line')
       .attr('x1', 0)
       .attr('x2', 0)
       .attr('y1', y(q1))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#9d0208');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
 
-    // 须端横线
     g.append('line')
       .attr('x1', -boxW / 4)
       .attr('x2', boxW / 4)
       .attr('y1', y(upperWhisker))
       .attr('y2', y(upperWhisker))
-      .attr('stroke', '#9d0208');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
     g.append('line')
       .attr('x1', -boxW / 4)
       .attr('x2', boxW / 4)
       .attr('y1', y(lowerWhisker))
       .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#9d0208');
+      .attr('stroke', sc)
+      .attr('stroke-width', 1);
   });
 
-  // 16) 依次淡入
+  // 17) 依次淡入
   groupContainers.transition()
     .delay((d, i) => i * 200)
     .duration(800)
     .attr('opacity', 1);
-
-  // 17) 图例（可选，说明小提琴与箱线含义）
-  const legend = svg.append('g')
-    .attr('transform', `translate(${width + 20}, 20)`);
-
-  legend.append('rect')
-    .attr('x', 0).attr('y', 0)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#e76f51')
-    .attr('opacity', 0.4);
-  legend.append('text')
-    .attr('x', 18).attr('y', 12)
-    .text('Violin (Density)')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
-
-  legend.append('rect')
-    .attr('x', 0).attr('y', 20)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#ffffff')
-    .attr('stroke', '#9d0208');
-  legend.append('text')
-    .attr('x', 18).attr('y', 32)
-    .text('Boxplot (Q1/Median/Q3)')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
 }

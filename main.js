@@ -702,3 +702,27 @@ function drawViolinBoxPlot(data) {
     .attr('font-size', '12px')
     .attr('alignment-baseline', 'middle');
 }
+
+// 确保放在 main.js 最末尾，或放到 index.html 中 </body> 前
+document.addEventListener('DOMContentLoaded', function() {
+  // 找到所有 .carousel .slide
+  const slides = document.querySelectorAll('.carousel .slide');
+  let currentIndex = 0;
+  const slideCount = slides.length;
+  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
+
+  // 如果根本没有 slide，或只有一张，不用轮播
+  if (slideCount <= 1) return;
+
+  function showNextSlide() {
+    // 去掉当前这一张的 active
+    slides[currentIndex].classList.remove('active');
+    // 计算下一张索引
+    currentIndex = (currentIndex + 1) % slideCount;
+    // 给下一张加上 active
+    slides[currentIndex].classList.add('active');
+  }
+
+  // 先预留 t=3s 后开始第一次切换
+  setInterval(showNextSlide, intervalTime);
+});

@@ -221,7 +221,7 @@ nav#navbar a:hover {
 .section-container {
   padding: 100px 40px 60px;
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 0 auto;   /* 保证包含该类的节是水平居中的 */
 }
 
 .section-container h1,
@@ -253,17 +253,16 @@ nav#navbar a:hover {
    2. 两栏布局：左侧总结文字，右侧图表（关键修改）
    ======================================================================== */
 .two-column {
-  display: flex;                    /* 强制左右并排 */
-  flex-direction: row;              /* 主轴为水平方向 */
+  display: flex;                    /* 强制水平并排 */
+  flex-direction: row;              /* 主轴水平方向 */
   align-items: flex-start;          /* 顶部对齐 */
-  justify-content: space-between;   /* 两侧拉开 */
-  gap: 2rem;                        /* 左右间距 */
+  justify-content: space-between;   /* 左右拉开 */
+  gap: 2rem;                        /* 左右两列之间间距 */
   flex-wrap: nowrap;                /* 禁止换行 */
 }
 
-/* 左侧总结文字区域 */
 .summary-text {
-  flex: 0 0 40%;                    /* 占父容器 40% 宽度 */
+  flex: 0 0 40%;                    /* 左侧占 40% 宽度 */
   background-color: #ffffff;
   border-radius: var(--border-radius-small);
   padding: 1.5rem;
@@ -289,9 +288,33 @@ nav#navbar a:hover {
   line-height: 1.5;
 }
 
-/* 右侧图表容器 */
+/* 左侧“数字统计格子” */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item h3 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.stat-item p {
+  font-size: 0.9rem;
+  color: var(--color-secondary-text);
+  line-height: 1.4;
+}
+
 .chart-container {
-  flex: 0 0 55%;                    /* 占父容器 55% 宽度 */
+  flex: 0 0 55%;                    /* 右侧占 55% 宽度 */
 }
 .chart-container h2 {
   font-size: 1.75rem;
@@ -379,10 +402,9 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   响应式：如果屏幕太窄，自动上下堆叠
+   响应式：当宽度 ≤ 992px 时，两栏改上下堆叠
    ======================================================================== */
 @media (max-width: 992px) {
-  /* 当宽度 ≤ 992px 时，两栏改为上下堆叠 */
   .two-column {
     flex-direction: column;
     text-align: center;
@@ -390,10 +412,13 @@ nav#navbar a:hover {
   .summary-text,
   .chart-container {
     width: 100%;
-    flex: none; /* 禁止 flex:0 0 XX% 继续生效，直接占满 100% */
+    flex: none;   /* 禁止 flex:0 0 XX% 继续生效，改为占满整行 */
   }
 }
 
+/* ========================================================================
+   更小屏 (≤ 768px) 时，隐藏装饰图标并收缩轮播高度
+   ======================================================================== */
 @media (max-width: 768px) {
   .hero-section {
     flex-direction: column;
@@ -404,7 +429,6 @@ nav#navbar a:hover {
   .decor-icon {
     display: none;
   }
-  /* 缩小轮播高度 */
   .graphic-container {
     height: 250px;
     width: 100%;

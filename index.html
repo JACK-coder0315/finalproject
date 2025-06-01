@@ -110,10 +110,10 @@
   </section>
 
   <!-- ==============================
-       2. Population-Level HbA1c Distribution（左右并排）
+       2. 人群 HbA1c 分布 —— 左右两栏：Key Statistics & Visualization
        ============================== -->
   <section id="dist" class="section-container two-column">
-    <!-- 左侧 Key Takeaways: 总人数 + 各类别人数 -->
+    <!-- 左侧 Key Statistics -->
     <div class="summary-text">
       <h2>Key Statistics</h2>
       <p>Dataset Summary: In this cohort, we have <strong>10,000 participants</strong> who provided both HbA1c and
@@ -137,23 +137,15 @@
           <p>Diabetes<br>(HbA1c ≥ 6.5)</p>
         </div>
       </div>
-
-      <p>
-        Over time, the histogram cycles through highlighting each category (all → normal → prediabetes → diabetes →
-        all), enabling us to visually appreciate how each subgroup’s frequency varies. The oscillation emphasizes that
-        although most individuals cluster around the “normal” range, a notable portion resides in the “prediabetes”
-        zone, reaffirming the need for timely screening.
-      </p>
     </div>
 
-    <!-- 右侧：动态直方图 -->
+    <!-- 右侧 Visualization -->
     <div class="chart-container">
       <h2>Population-Level HbA1c Distribution</h2>
       <div id="histogram"></div>
       <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
     </div>
   </section>
-
   <!-- ==============================
        3. HbA1c 随年龄变化的趋势（折线 + 滑块）
        ============================== -->

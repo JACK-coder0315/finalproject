@@ -2,29 +2,104 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>HbA1c & Gender Glucose Visualization</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body { font-family: sans-serif; }
-    svg { overflow: visible; margin-bottom: 40px; }
-    .violin { fill: steelblue; opacity: 0.5; }
-    .box { fill: #69b3a2; opacity: 0.6; }
-    .median { stroke: #000; stroke-width: 2px; }
-    .whisker { stroke: #000; }
-    .axis path,
-    .axis line { stroke: #333; }
-    .axis text { font-size: 12px; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HbA1c &amp; Early Diabetes Risk Visualization</title>
+
+  <!-- 引入 D3.js -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+  <!-- 自定义样式 -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h2>Post-Meal Glucose Δ by HbA1c Group and by Gender</h2>
+  <!-- 顶部导航栏 -->
+  <nav id="navbar">
+    <ul>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#dist">HbA1c Distribution</a></li>
+      <li><a href="#trend">Age/Time Trends</a></li>
+      <li><a href="#risk">Risk Curve</a></li>
+      <li><a href="#case">Individual Cases</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+  </nav>
 
-  <h3>Violin Plot (HbA1c Groups)</h3>
-  <svg id="violin" width="800" height="400"></svg>
+  <!-- 1. 引言部分 -->
+  <section id="intro" class="section-container">
+    <h1>What is HbA1c and Why Does It Matter?</h1>
+    <p>
+      HbA1c (glycated hemoglobin) is formed when glucose binds to hemoglobin in red blood cells. Since red blood cells live about 120 days,
+      HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is used both for diagnosing diabetes and for monitoring long-term glucose control.
+      <br /><br />
+      <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
+      <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
+      <strong>Diabetes diagnosis:</strong> HbA1c ≥ 6.5%
+    </p>
+    <p>
+      In this interactive visualization, we will explore:
+      <ol>
+        <li>Population-level distribution of HbA1c</li>
+        <li>How average HbA1c changes with age</li>
+        <li>The relationship between HbA1c and probability of developing type 2 diabetes</li>
+        <li>Example individual trajectories from normal to prediabetes to diabetes</li>
+      </ol>
+    </p>
+  </section>
 
-  <h3>Boxplot (Gender)</h3>
-  <svg id="boxplot" width="800" height="400"></svg>
+  <!-- 2. 人群 HbA1c 分布 -->
+  <section id="dist" class="section-container">
+    <h2>Population-Level HbA1c Distribution</h2>
+    <div id="histogram"></div>
+    <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
+  </section>
 
-  <script src="script.js"></script>
+  <!-- 3. HbA1c 随年龄变化的趋势 -->
+  <section id="trend" class="section-container">
+    <h2>HbA1c Trends Over Age</h2>
+    <div id="age-slider-container">
+      <label for="ageSlider">Select Age: </label>
+      <input type="range" id="ageSlider" min="20" max="80" step="1" value="20" />
+      <span id="ageValue">20</span>
+    </div>
+    <div id="lineChart"></div>
+    <p class="caption">Figure 2. Change in mean HbA1c by age group (drag slider to update).</p>
+  </section>
+
+  <!-- 4. HbA1c 与糖尿病风险曲线 -->
+  <section id="risk" class="section-container">
+    <h2>HbA1c vs. Diabetes Risk</h2>
+    <div id="riskCurve"></div>
+    <p class="caption">Figure 3. Estimated probability of developing type 2 diabetes as HbA1c increases.</p>
+  </section>
+
+  <!-- 5. 个体案例模拟 -->
+  <section id="case" class="section-container">
+    <h2>Individual Progression Examples</h2>
+    <div id="caseCharts"></div>
+    <p class="caption">Figure 4. Example trajectories from normal → prediabetes → diabetes.</p>
+  </section>
+
+  <!-- 6. 结论与参考文献 -->
+  <section id="conclusion" class="section-container">
+    <h2>Conclusions &amp; References</h2>
+    <ul>
+      <li>当 HbA1c ≥ 5.7% 时，即进入“糖尿病前期”区间，未来发展为糖尿病的风险显著增加，应立即采取生活方式干预。</li>
+      <li>在不同年龄段，平均 HbA1c 随年龄增长而上升，尤其在中年以后增长速度更快。</li>
+      <li>基于 Logistic 回归模型，HbA1c 每提高 1% 时，患糖尿病的几率大幅上升。临床上建议 HbA1c 保持在 &lt; 6.5% 范围。</li>
+      <li>个体轨迹示例展示了：及早检测并干预可将一部分人群从“前期”状态逆转或延缓。</li>
+    </ul>
+    <h3>References</h3>
+    <ol>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in Diagnosis and Prognosis of Diabetic Complications</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the Diagnosis of Diabetes</a></li>
+      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker of Well-Controlled Diabetes?</a></li>
+      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of Hemoglobin A1c in the Management of Diabetes</a></li>
+      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
+    </ol>
+  </section>
+
+  <!-- 引入自定义脚本 -->
+  <script src="main.js"></script>
 </body>
 </html>
+f

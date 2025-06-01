@@ -781,7 +781,7 @@ function drawViolinByGender(rawData) {
   // 12) 小提琴水平比例尺：让小提琴最大可展开到 x.bandwidth() * 0.8
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
-    .range([0, x.bandwidth() * 0.8]);
+    .range([0, x.bandwidth() * 0.999]);
 
   // 13) 定义填充颜色：Female=蓝, Male=黄, Other=深紫
   const fillColors = {
@@ -849,7 +849,7 @@ function drawViolinByGender(rawData) {
     if (!d.box) return;
 
     const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
-    const boxW = x.bandwidth() * 0.3;
+    const boxW = x.bandwidth() * 0.001;
     const fc = fillColors[d.group] || '#999999';
     const sc = strokeColors[d.group] || '#333333';
 

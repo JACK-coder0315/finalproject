@@ -11,6 +11,8 @@
 
   <!-- ====== 自定义样式 ====== -->
   <link rel="stylesheet" href="style.css" />
+  <!-- 引入 Google Fonts（可选） -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
 </head>
 
 <body>
@@ -19,6 +21,7 @@
        ============================== -->
   <nav id="navbar">
     <ul>
+      <li><a href="#hero">Home</a></li>
       <li><a href="#intro">Introduction</a></li>
       <li><a href="#dist">HbA1c Distribution</a></li>
       <li><a href="#trend">Age/Time Trends</a></li>
@@ -29,15 +32,54 @@
   </nav>
 
   <!-- ==============================
+       0. Hero Section：左右两栏，左侧文字+按钮，右侧紫色圆角背景+装饰
+       ============================== -->
+  <section id="hero" class="hero-section">
+    <!-- 左侧文字区域 -->
+    <div class="hero-text">
+      <h1 class="hero-title">
+        The Effect of <span class="highlight">Parkinsons</span> on Typing Ability
+      </h1>
+      <p class="hero-subtitle">
+        Investigating the impact of Parkinson's disease on dexterity and fine motor control through the visualization of typing.
+      </p>
+      <div class="hero-buttons">
+        <a href="#dist" class="btn btn-primary">Data</a>
+        <a href="#explore" class="btn btn-secondary">Explore more</a>
+      </div>
+    </div>
+
+    <!-- 右侧图形区域 -->
+    <div class="hero-graphic">
+      <div class="graphic-container">
+        <!-- 这里放你的插画 / 装饰图，例如一张 PNG 或 SVG -->
+        <img src="graphic.png" alt="Decorative Illustration" class="main-image" />
+
+        <!-- 左中部的橘黄色小图标 -->
+        <div class="decor-icon icon-left">
+          <!-- 你可以用 <img> 或者内联 SVG，这里用 emoji 仅作示例 -->
+          📈
+        </div>
+        <!-- 右上角的橘黄色小图标 -->
+        <div class="decor-icon icon-top-right">
+          ⌨️
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- ==============================
+       Hero Section 结束
+       ============================== -->
+
+  <!-- ==============================
        1. 引言部分
        ============================== -->
   <section id="intro" class="section-container">
     <h1>What is HbA1c and Why Does It Matter?</h1>
     <p>
       HbA1c (glycated hemoglobin) is formed when glucose binds to hemoglobin in red blood cells. Since red blood cells
-      live about 120 days,
-      HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is used both for
-      diagnosing diabetes and for monitoring long-term glucose control.
+      live about 120 days, HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is
+      used both for diagnosing diabetes and for monitoring long-term glucose control.
       <br /><br />
       <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
       <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
@@ -59,7 +101,6 @@
        ============================== -->
   <section id="dist" class="section-container">
     <h2>Population-Level HbA1c Distribution</h2>
-    <!-- 下面这个 div 要与 main.js 中 drawHistogram() 里 d3.select('#histogram') 相对应 -->
     <div id="histogram"></div>
     <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
   </section>
@@ -69,14 +110,11 @@
        ============================== -->
   <section id="trend" class="section-container">
     <h2>HbA1c Trends Over Age</h2>
-    <!-- 下面 slider 的 ID 要与 main.js 中 drawAgeTrend() 对应 -->
     <div id="age-slider-container">
       <label for="ageSlider">Select Age: </label>
-      <!-- 不需要在这里写 min/max/value，main.js 会动态设置 -->
       <input type="range" id="ageSlider" />
       <span id="ageValue"></span>
     </div>
-    <!-- 下面这个 div 要与 main.js 中 drawAgeTrend() 里 d3.select('#lineChart') 相对应 -->
     <div id="lineChart"></div>
     <p class="caption">Figure 2. Change in mean HbA1c by age group (drag slider to update).</p>
   </section>
@@ -86,7 +124,6 @@
        ============================== -->
   <section id="risk" class="section-container">
     <h2>HbA1c vs. Diabetes Risk</h2>
-    <!-- 这个 div 要与 main.js 中 drawRiskCurve() 里 d3.select('#riskCurve') 相对应 -->
     <div id="riskCurve"></div>
     <p class="caption">Figure 3. Estimated probability of developing type 2 diabetes as HbA1c increases.</p>
   </section>
@@ -96,7 +133,6 @@
        ============================== -->
   <section id="case" class="section-container">
     <h2>Individual Progression Examples</h2>
-    <!-- 如果你在后面准备了 case_examples.csv 并实现了 drawCaseExamples()，要把这个 div 留着 -->
     <div id="caseCharts"></div>
     <p class="caption">Figure 4. Example trajectories from normal → prediabetes → diabetes.</p>
   </section>
@@ -134,7 +170,6 @@
   <!-- ==============================
        引入自定义脚本（必须放在 body 底部）
        ============================== -->
-  <!-- main.js 中包含了 drawHistogram、drawAgeTrend、drawRiskCurve 等函数 -->
   <script src="main.js"></script>
 </body>
 

@@ -220,7 +220,7 @@ nav#navbar a:hover {
    ======================================================================== */
 .section-container {
   max-width: 1000px;
-  margin-left:300px;
+  margin-left:250px;
   padding: 100px 20px 60px;
   /* …其他样式… */
 }

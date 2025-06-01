@@ -14,25 +14,36 @@ document.addEventListener('DOMContentLoaded', () => {
     blood_glucose: +d.blood_glucose_level,
     diabetes: +d.diabetes
   })).then(rawData => {
-    // 为每条记录添加 status（HbA1c 状态）和 ageDecade
+    // 为每条记录添加 status（HbA1c 状态）和 ageGroup
     rawData.forEach(d => {
+      // HbA1c 状态（可选，仅作后续风险曲线使用）
       if (d.hbA1c < 5.7) d.status = 'normal';
       else if (d.hbA1c < 6.5) d.status = 'prediabetes';
       else d.status = 'diabetes';
-      const decade = Math.floor(d.age / 10) * 10;
-      d.ageDecade = `${decade}–${decade + 9}`;
+
+      // 年龄分组：0-18, 20-40, 40-60, 60-80
+      if (d.age <= 18) {
+        d.ageGroup = '0–18';
+      } else if (d.age > 18 && d.age <= 40) {
+        d.ageGroup = '20–40';
+      } else if (d.age > 40 && d.age <= 60) {
+        d.ageGroup = '40–60';
+      } else if (d.age > 60 && d.age <= 80) {
+        d.ageGroup = '60–80';
+      } else {
+        d.ageGroup = 'Other';
+      }
     });
 
     // 执行各个可视化函数
     drawHistogram(rawData);
-    drawAgeTrend(rawData);
+    drawAgeViolinGenderBox(rawData);
     drawRiskCurve(rawData);
-    // 如果不需要箱线 + 小提琴图组合，就注释掉下面一行：
+    // 如果不需要箱线＋小提琴图组合，就直接注释掉下面这一行：
     // drawViolinBoxPlot(rawData);
   }).catch(error => {
     console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
   });
-
 
   // 初始化轮播（Carousel）
   const slides = document.querySelectorAll('.carousel .slide');
@@ -47,8 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, intervalTime);
   }
 });
-
-
 
 /* =========================================================================
    1. 人群 HbA1c 分布 —— 动态直方图
@@ -176,163 +185,258 @@ function drawHistogram(data) {
   }
 }
 
-
-
 /* =========================================================================
-   2. HbA1c 随年龄变化趋势 —— 带动态动画的折线图 + 自动滑块
+   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
    ========================================================================= */
-function drawAgeTrend(data) {
-  // 计算每个整数年龄的 mean 与 std
-  const ageGroups = d3.rollups(
-    data,
-    v => {
-      const arr = v.map(d => d.hbA1c);
-      return {
-        mean: d3.mean(arr),
-        std: d3.deviation(arr) || 0
+function drawAgeViolinGenderBox(data) {
+  // 过滤出需要的四个年龄组（0-18, 20-40, 40-60, 60-80）
+  const ageBins = ['0–18', '20–40', '40–60', '60–80'];
+  // 准备每个年龄段的 HbA1c 数组
+  const ageGrouped = {};
+  ageBins.forEach(bin => ageGrouped[bin] = []);
+  data.forEach(d => {
+    if (ageGrouped[d.ageGroup]) {
+      ageGrouped[d.ageGroup].push(d.hbA1c);
+    }
+  });
+
+  // 性别分组
+  const genderBins = ['Male', 'Female'];
+  const genderGrouped = { 'Male': [], 'Female': [] };
+  data.forEach(d => {
+    if (genderGrouped[d.gender] !== undefined) {
+      genderGrouped[d.gender].push(d.hbA1c);
+    }
+  });
+
+  // 1) 绘制小提琴图（Age Violin Plot）
+  {
+    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+    const width = 800 - margin.left - margin.right;
+    const height = 350 - margin.top - margin.bottom;
+
+    const svg = d3.select('#violinPlot')
+      .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // x 轴：年份组
+    const x = d3.scaleBand()
+      .domain(ageBins)
+      .range([0, width])
+      .padding(0.4);
+
+    // y 轴：HbA1c 范围
+    const allHbA1c = data.map(d => d.hbA1c);
+    const y = d3.scaleLinear()
+      .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
+      .range([height, 0]);
+
+    // x 轴和 y 轴
+    svg.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x));
+    svg.append('g')
+      .call(d3.axisLeft(y));
+
+    svg.append('text')
+      .attr('x', width / 2)
+      .attr('y', height + margin.bottom - 5)
+      .attr('text-anchor', 'middle')
+      .text('Age Group');
+    svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', -margin.left + 15)
+      .attr('text-anchor', 'middle')
+      .text('HbA1c (%)');
+
+    // Kernel Density Estimator 函数
+    function kernelDensityEstimator(kernel, X) {
+      return function (V) {
+        return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
       };
-    },
-    d => Math.floor(d.age)
-  );
-  const ageTrend = ageGroups.map(([age, stats]) => ({
-    age: age,
-    mean: stats.mean,
-    std: stats.std
-  })).sort((a, b) => a.age - b.age);
+    }
+    function kernelEpanechnikov(k) {
+      return function (v) {
+        v /= k;
+        return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+      };
+    }
 
-  const margin = { top: 20, right: 60, bottom: 40, left: 50 };
-  const width = 800 - margin.left - margin.right;
-  const height = 350 - margin.top - margin.bottom;
+    // 为每个年龄段计算密度
+    const xTicks = d3.range(d3.min(allHbA1c), d3.max(allHbA1c) + 0.1, 0.1);
+    const allDensities = [];
+    ageBins.forEach(bin => {
+      const values = ageGrouped[bin];
+      if (values.length === 0) {
+        allDensities.push({ bin, density: [] });
+      } else {
+        const kde = kernelDensityEstimator(kernelEpanechnikov(0.4), xTicks);
+        const density = kde(values);
+        allDensities.push({ bin, density });
+      }
+    });
 
-  const svg = d3.select('#lineChart')
-    .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`);
+    // 找到最大的密度值，用于缩放
+    const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]));
 
-  // x 轴：年龄
-  const x = d3.scaleLinear()
-    .domain(d3.extent(ageTrend, d => d.age))
-    .range([0, width]);
+    // 用来绘制小提琴图的水平尺度
+    const xNum = d3.scaleLinear()
+      .domain([0, maxDensity])
+      .range([0, x.bandwidth() / 2]);
 
-  // y 轴：平均 HbA1c ± std
-  const y = d3.scaleLinear()
-    .domain([
-      d3.min(ageTrend, d => d.mean - d.std) - 0.2,
-      d3.max(ageTrend, d => d.mean + d.std) + 0.2
-    ])
-    .range([height, 0]);
+    // 绘制每个小提琴
+    allDensities.forEach(group => {
+      const center = x(group.bin) + x.bandwidth() / 2;
+      const grp = svg.append('g');
 
-  // 折线与误差带定义
-  const line = d3.line()
-    .x(d => x(d.age))
-    .y(d => y(d.mean))
-    .curve(d3.curveMonotoneX);
+      // 双边小提琴：先右半部分
+      grp.append('path')
+        .datum(group.density)
+        .attr('d', d3.area()
+          .x0(d => center + xNum(d[1]))
+          .x1(() => center)
+          .y(d => y(d[0]))
+          .curve(d3.curveCatmullRom))
+        .attr('fill', '#69b3a2')
+        .attr('stroke', '#2a7f65')
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.6);
 
-  const area = d3.area()
-    .x(d => x(d.age))
-    .y0(d => y(d.mean - d.std))
-    .y1(d => y(d.mean + d.std))
-    .curve(d3.curveMonotoneX);
-
-  // 绘制折线并添加描边动画
-  const path = svg.append('path')
-    .datum(ageTrend)
-    .attr('fill', 'none')
-    .attr('stroke', '#ff7f0e')
-    .attr('stroke-width', 2)
-    .attr('d', line);
-
-  const totalLength = path.node().getTotalLength();
-  path
-    .attr('stroke-dasharray', totalLength + ' ' + totalLength)
-    .attr('stroke-dashoffset', totalLength)
-    .transition()
-    .duration(1500)
-    .attr('stroke-dashoffset', 0);
-
-  // 绘制误差带（先隐藏，稍后淡入）
-  const areaPath = svg.append('path')
-    .datum(ageTrend)
-    .attr('fill', '#ff7f0e')
-    .attr('opacity', 0)
-    .attr('d', area);
-
-  areaPath
-    .transition().delay(800).duration(800)
-    .attr('opacity', 0.2);
-
-  // 坐标轴
-  svg.append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x).ticks(7));
-  svg.append('g')
-    .call(d3.axisLeft(y));
-
-  // 轴标签
-  svg.append('text')
-    .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 5)
-    .attr('text-anchor', 'middle')
-    .text('Age (Years)');
-  svg.append('text')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
-    .attr('text-anchor', 'middle')
-    .text('Mean HbA1c (%)');
-
-  // 滑块 & 高亮点
-  const ageSlider = d3.select('#ageSlider');
-  const ageValueLabel = d3.select('#ageValue');
-
-  const ages = ageTrend.map(d => d.age);
-  ageSlider
-    .attr('min', d3.min(ages))
-    .attr('max', d3.max(ages))
-    .attr('value', d3.min(ages));
-
-  const focusCircle = svg.append('circle')
-    .attr('r', 6)
-    .attr('fill', 'steelblue')
-    .style('opacity', 0);
-
-  function updateAge(chosenAge) {
-    const rec = ageTrend.find(d => d.age === +chosenAge);
-    if (!rec) return;
-    focusCircle
-      .attr('cx', x(rec.age))
-      .attr('cy', y(rec.mean))
-      .style('opacity', 1);
-    ageValueLabel.text(chosenAge);
+      // 左半部分
+      grp.append('path')
+        .datum(group.density)
+        .attr('d', d3.area()
+          .x0(d => center - xNum(d[1]))
+          .x1(() => center)
+          .y(d => y(d[0]))
+          .curve(d3.curveCatmullRom))
+        .attr('fill', '#69b3a2')
+        .attr('stroke', '#2a7f65')
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.6);
+    });
   }
 
-  let autoTimer;
-  function startAutoPlay() {
-    let i = 0;
-    autoTimer = d3.interval(() => {
-      const idx = i % ages.length;
-      const chosen = ages[idx];
-      ageSlider.property('value', chosen);
-      updateAge(chosen);
-      i++;
-    }, 300);
+  // 2) 绘制性别箱线图（Gender Box Plot）
+  {
+    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+    const width = 800 - margin.left - margin.right;
+    const height = 200 - margin.top - margin.bottom; // 箱线图高度小一些
+
+    const svg = d3.select('#genderBoxPlot')
+      .append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // x 轴：Gender
+    const x = d3.scaleBand()
+      .domain(genderBins)
+      .range([0, width])
+      .padding(0.4);
+
+    // y 轴：HbA1c 范围，和上面一样
+    const allHbA1c = data.map(d => d.hbA1c);
+    const y = d3.scaleLinear()
+      .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
+      .range([height, 0]);
+
+    // 绘制轴
+    svg.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x));
+    svg.append('g')
+      .call(d3.axisLeft(y));
+
+    svg.append('text')
+      .attr('x', width / 2)
+      .attr('y', height + margin.bottom - 5)
+      .attr('text-anchor', 'middle')
+      .text('Gender');
+    svg.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', -margin.left + 15)
+      .attr('text-anchor', 'middle')
+      .text('HbA1c (%)');
+
+    // 准备将每个性别组排序并计算箱线图所需的五数概括
+    const boxData = [];
+    genderBins.forEach(gen => {
+      const values = genderGrouped[gen].sort(d3.ascending);
+      const q1 = d3.quantile(values, 0.25);
+      const median = d3.quantile(values, 0.5);
+      const q3 = d3.quantile(values, 0.75);
+      const iqr = q3 - q1;
+      const lowerWhisker = Math.max(d3.min(values), q1 - 1.5 * iqr);
+      const upperWhisker = Math.min(d3.max(values), q3 + 1.5 * iqr);
+      boxData.push({ gender: gen, q1, median, q3, lowerWhisker, upperWhisker });
+    });
+
+    // 绘制每个箱线
+    const boxWidth = x.bandwidth() * 0.5;
+    boxData.forEach(d => {
+      const cx = x(d.gender) + x.bandwidth() / 2;
+
+      // 箱体
+      svg.append('rect')
+        .attr('x', cx - boxWidth / 2)
+        .attr('y', y(d.q3))
+        .attr('width', boxWidth)
+        .attr('height', y(d.q1) - y(d.q3))
+        .attr('fill', '#ff7f0e')
+        .attr('opacity', 0.6)
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 1);
+
+      // 中位数线
+      svg.append('line')
+        .attr('x1', cx - boxWidth / 2)
+        .attr('x2', cx + boxWidth / 2)
+        .attr('y1', y(d.median))
+        .attr('y2', y(d.median))
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 2);
+
+      // 须线（上下）
+      svg.append('line')
+        .attr('x1', cx)
+        .attr('x2', cx)
+        .attr('y1', y(d.upperWhisker))
+        .attr('y2', y(d.q3))
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 1);
+      svg.append('line')
+        .attr('x1', cx)
+        .attr('x2', cx)
+        .attr('y1', y(d.q1))
+        .attr('y2', y(d.lowerWhisker))
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 1);
+
+      // 须端
+      svg.append('line')
+        .attr('x1', cx - boxWidth / 4)
+        .attr('x2', cx + boxWidth / 4)
+        .attr('y1', y(d.upperWhisker))
+        .attr('y2', y(d.upperWhisker))
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 1);
+      svg.append('line')
+        .attr('x1', cx - boxWidth / 4)
+        .attr('x2', cx + boxWidth / 4)
+        .attr('y1', y(d.lowerWhisker))
+        .attr('y2', y(d.lowerWhisker))
+        .attr('stroke', '#cc6600')
+        .attr('stroke-width', 1);
+    });
   }
-
-  ageSlider.on('mousedown', () => {
-    if (autoTimer) autoTimer.stop();
-  });
-
-  ageSlider.on('input', function () {
-    updateAge(this.value);
-  });
-
-  // 初始绘制 & 自动播放
-  updateAge(d3.min(ages));
-  startAutoPlay();
 }
-
 
 
 /* =========================================================================
@@ -440,10 +544,10 @@ function drawRiskCurve(data) {
     .attr('stroke', '#1f77b4')
     .attr('stroke-width', 2)
     .attr('d', line)
-    .attr('stroke-dasharray', function () {
+    .attr('stroke-dasharray', function() {
       return this.getTotalLength() + ' ' + this.getTotalLength();
     })
-    .attr('stroke-dashoffset', function () {
+    .attr('stroke-dashoffset', function() {
       return this.getTotalLength();
     });
 
@@ -474,268 +578,3 @@ function drawRiskCurve(data) {
       tooltip.style('opacity', 0);
     });
 }
-
-
-
-/* =========================================================================
-   4. 血糖浓度分布 —— 小提琴 + 箱线图组合
-   如果不需要这部分，可直接注释掉 drawViolinBoxPlot(rawData) 的调用
-   ========================================================================= */
-function drawViolinBoxPlot(data) {
-  const ageGroups = Array.from(new Set(data.map(d => d.ageDecade))).sort((a, b) => {
-    const a0 = +a.split('–')[0], b0 = +b.split('–')[0];
-    return a0 - b0;
-  });
-  const hbaStates = ['normal', 'prediabetes', 'diabetes'];
-
-  const margin = { top: 20, right: 80, bottom: 60, left: 60 };
-  const width = 900 - margin.left - margin.right;
-  const height = 400 - margin.top - margin.bottom;
-
-  const svg = d3.select('#violinBoxPlot')
-    .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const x0 = d3.scaleBand()
-    .domain(ageGroups)
-    .range([0, width])
-    .paddingInner(0.2);
-
-  const x1 = d3.scaleBand()
-    .domain(hbaStates)
-    .range([0, x0.bandwidth()])
-    .padding(0.1);
-
-  const bloodMin = d3.min(data, d => d.blood_glucose);
-  const bloodMax = d3.max(data, d => d.blood_glucose);
-  const y = d3.scaleLinear()
-    .domain([bloodMin - 5, bloodMax + 5])
-    .nice()
-    .range([height, 0]);
-
-  // 绘制坐标轴
-  svg.append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x0))
-    .selectAll('text')
-    .attr('transform', 'rotate(0)')
-    .style('text-anchor', 'middle');
-
-  svg.append('g')
-    .call(d3.axisLeft(y));
-
-  // 轴标签
-  svg.append('text')
-    .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 10)
-    .attr('text-anchor', 'middle')
-    .text('Age Decade');
-
-  svg.append('text')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
-    .attr('text-anchor', 'middle')
-    .text('Blood Glucose Level (mg/dL)');
-
-  // KDE 函数
-  function kernelDensityEstimator(kernel, X) {
-    return function (V) {
-      return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
-    };
-  }
-  function kernelEpanechnikov(k) {
-    return function (v) {
-      v /= k;
-      return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
-    };
-  }
-
-  const xTicks = d3.range(bloodMin, bloodMax + 1, 1);
-
-  const allGroups = [];
-  ageGroups.forEach(ad => {
-    hbaStates.forEach(st => {
-      const arr = data
-        .filter(d => d.ageDecade === ad && d.status === st)
-        .map(d => d.blood_glucose);
-
-      if (arr.length === 0) {
-        allGroups.push({ ageDecade: ad, status: st, density: [], box: null });
-        return;
-      }
-
-      const kde = kernelDensityEstimator(kernelEpanechnikov(5), xTicks);
-      const density = kde(arr);
-
-      const sorted = arr.sort(d3.ascending);
-      const q1 = d3.quantile(sorted, 0.25);
-      const median = d3.quantile(sorted, 0.5);
-      const q3 = d3.quantile(sorted, 0.75);
-      const iqr = q3 - q1;
-      const lowerWhisker = d3.max([d3.min(sorted), q1 - 1.5 * iqr]);
-      const upperWhisker = d3.min([d3.max(sorted), q3 + 1.5 * iqr]);
-
-      allGroups.push({
-        ageDecade: ad,
-        status: st,
-        density: density,
-        box: { q1, median, q3, lowerWhisker, upperWhisker }
-      });
-    });
-  });
-
-  const maxDensity = d3.max(allGroups, g =>
-    g.density.length ? d3.max(g.density, d => d[1]) : 0
-  );
-
-  const xViolin = d3.scaleLinear()
-    .domain([0, maxDensity])
-    .range([0, x1.bandwidth() / 2]);
-
-  const groupContainer = svg.append('g')
-    .selectAll('g')
-    .data(allGroups)
-    .enter()
-    .append('g')
-    .attr('transform', d => `
-        translate(
-          ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2},
-          0
-        )
-      `)
-    .attr('opacity', 0);
-
-  // 绘制小提琴
-  groupContainer.each(function (d) {
-    const grp = d3.select(this);
-    if (!d.density.length) return;
-
-    grp.append('path')
-      .datum(d.density)
-      .attr('d', d3.area()
-        .x0(pt => xViolin(pt[1]))
-        .x1(pt => 0)
-        .y(pt => y(pt[0]))
-        .curve(d3.curveCatmullRom))
-      .attr('fill', '#69b3a2')
-      .attr('stroke', '#2a7f65')
-      .attr('stroke-width', 1)
-      .attr('opacity', 0.6);
-
-    grp.append('path')
-      .datum(d.density)
-      .attr('d', d3.area()
-        .x0(pt => -xViolin(pt[1]))
-        .x1(pt => 0)
-        .y(pt => y(pt[0]))
-        .curve(d3.curveCatmullRom))
-      .attr('fill', '#69b3a2')
-      .attr('stroke', '#2a7f65')
-      .attr('stroke-width', 1)
-      .attr('opacity', 0.6);
-  });
-
-  // 绘制箱线（如果需要，可保留；若不想要，可以删除以下几行）
-  groupContainer.each(function (d) {
-    const grp = d3.select(this);
-    if (!d.box) return;
-
-    const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
-    const boxW = x1.bandwidth() * 0.5;
-
-    grp.append('rect')
-      .attr('x', -boxW / 2)
-      .attr('y', y(q3))
-      .attr('width', boxW)
-      .attr('height', y(q1) - y(q3))
-      .attr('stroke', '#264653')
-      .attr('fill', '#69b3a2')
-      .attr('opacity', 0.8);
-
-    grp.append('line')
-      .attr('x1', -boxW / 2)
-      .attr('x2', boxW / 2)
-      .attr('y1', y(median))
-      .attr('y2', y(median))
-      .attr('stroke', '#264653')
-      .attr('stroke-width', 2);
-
-    grp.append('line')
-      .attr('x1', 0)
-      .attr('x2', 0)
-      .attr('y1', y(upperWhisker))
-      .attr('y2', y(q3))
-      .attr('stroke', '#264653')
-      .attr('stroke-width', 1);
-    grp.append('line')
-      .attr('x1', 0)
-      .attr('x2', 0)
-      .attr('y1', y(q1))
-      .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#264653')
-      .attr('stroke-width', 1);
-
-    grp.append('line')
-      .attr('x1', -boxW / 4)
-      .attr('x2', boxW / 4)
-      .attr('y1', y(upperWhisker))
-      .attr('y2', y(upperWhisker))
-      .attr('stroke', '#264653')
-      .attr('stroke-width', 1);
-    grp.append('line')
-      .attr('x1', -boxW / 4)
-      .attr('x2', boxW / 4)
-      .attr('y1', y(lowerWhisker))
-      .attr('y2', y(lowerWhisker))
-      .attr('stroke', '#264653')
-      .attr('stroke-width', 1);
-  });
-
-  groupContainer.transition()
-    .delay((d, i) => i * 200)
-    .duration(800)
-    .attr('opacity', 1);
-
-  // 如果不需要图例，也可以删除以下几行
-  const legend = svg.append('g')
-    .attr('transform', `translate(${width + 20}, 20)`);
-
-  legend.append('rect')
-    .attr('x', 0).attr('y', 0)
-    .attr('width', 12).attr('height', 12)
-    .attr('fill', '#69b3a2')
-    .attr('opacity', 0.6);
-  legend.append('text')
-    .attr('x', 18).attr('y', 12)
-    .text('Violin + Box')
-    .attr('font-size', '12px')
-    .attr('alignment-baseline', 'middle');
-}
-
-// 确保这段脚本在 DOM 加载完成后执行
-document.addEventListener('DOMContentLoaded', function () {
-  // 找到所有 .carousel .slide
-  const slides = document.querySelectorAll('.carousel .slide');
-  let currentIndex = 0;
-  const slideCount = slides.length;
-  const intervalTime = 3000; // 每 3000ms（3s）切换一次
-
-  // 如果帧数 <= 1，则不需要轮播
-  if (slideCount <= 1) return;
-
-  function showNextSlide() {
-    // 1. 隐藏当前帧
-    slides[currentIndex].classList.remove('active');
-    // 2. 计算下一张的索引
-    currentIndex = (currentIndex + 1) % slideCount;
-    // 3. 显示下一帧
-    slides[currentIndex].classList.add('active');
-  }
-
-  // 首次不立刻切换，让用户看到第一帧，间隔后再执行
-  setInterval(showNextSlide, intervalTime);
-});

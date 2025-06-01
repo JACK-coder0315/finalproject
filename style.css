@@ -220,9 +220,8 @@ nav#navbar a:hover {
    ======================================================================== */
 .section-container {
   max-width: 1000px;
-  margin-left:250px;
+  margin: 0 auto;          /* 水平居中 */
   padding: 100px 40px 60px;
-  /* …其他样式… */
 }
 
 .section-container h1,
@@ -327,28 +326,9 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   滑块容器 (Age Slider)
+   3. 滑块容器 (Age Slider) —— 已移除
    ======================================================================== */
-#age-slider-container {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-}
-
-#age-slider-container label {
-  margin-right: 10px;
-  font-weight: 500;
-}
-
-#ageSlider {
-  flex: 1;
-  margin-right: 10px;
-}
-
-#ageValue {
-  font-size: 16px;
-  font-weight: bold;
-}
+/* 不再使用折线图，不需要这一部分 */
 
 /* ========================================================================
    Tooltip 样式
@@ -448,3 +428,4 @@ nav#navbar a:hover {
     margin: 5px 10px;
   }
 }
+

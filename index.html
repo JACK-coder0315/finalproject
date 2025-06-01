@@ -23,7 +23,7 @@
       <li><a href="#hero">Home</a></li>
       <li><a href="#intro">Introduction</a></li>
       <li><a href="#dist">HbA1c Distribution</a></li>
-      <li><a href="#trend">Age/Time Trends</a></li>
+      <li><a href="#ageViolin">Age &amp; Gender Plots</a></li>
       <li><a href="#risk">Risk Curve</a></li>
       <li><a href="#case">Individual Cases</a></li>
       <li><a href="#conclusion">Conclusion</a></li>
@@ -84,6 +84,7 @@
       <!-- <div class="decor-icon icon-top-right">✎</div> -->
     </div>
   </section>
+
   <!-- ==============================
        1. 引言部分
        ============================== -->
@@ -102,7 +103,8 @@
       In this interactive visualization, we will explore:
     <ol>
       <li>Population-level distribution of HbA1c</li>
-      <li>How average HbA1c changes with age</li>
+      <li>HbA1c distribution by age groups</li>
+      <li>HbA1c distribution by gender</li>
       <li>The relationship between HbA1c and probability of developing type 2 diabetes</li>
       <li>Example individual trajectories from normal to prediabetes to diabetes</li>
     </ol>
@@ -112,58 +114,81 @@
   <!-- ==============================
        2. 人群 HbA1c 分布 —— 左右两栏：Key Statistics & Visualization
        ============================== -->
-  <!-- 在你的 HTML 中，找到你想把“双栏”放置的位置，示例放在“Population-Level HbA1c Distribution”前面 -->
-<section class="section-container">
-  <div class="two-column">
-    <!-- 左侧：Key Statistics 区块 -->
-    <div class="summary-text">
-      <h2>Key Statistics</h2>
-      <p>
-        Dataset Summary: In this dataset, we have <strong>10,000 participants</strong>
-        who provided both HbA1c and demographic data.
-      </p>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <h3>10,000</h3>
-          <p>Total Subjects</p>
+  <section id="dist" class="section-container">
+    <div class="two-column">
+      <!-- 左侧：Key Statistics 区块 -->
+      <div class="summary-text">
+        <h2>Key Statistics</h2>
+        <p>
+          Dataset Summary: In this dataset, we have <strong>10,000 participants</strong>
+          who provided both HbA1c and demographic data.
+        </p>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <h3>10,000</h3>
+            <p>Total Subjects</p>
+          </div>
+          <div class="stat-item">
+            <h3>7,200</h3>
+            <p>Normal<br/>(HbA1c &lt; 5.7%)</p>
+          </div>
+          <div class="stat-item">
+            <h3>2,100</h3>
+            <p>Prediabetes<br/>(5.7 ≤ HbA1c &lt; 6.5)</p>
+          </div>
+          <div class="stat-item">
+            <h3>700</h3>
+            <p>Diabetes<br/>(HbA1c ≥ 6.5)</p>
+          </div>
         </div>
-        <div class="stat-item">
-          <h3>7,200</h3>
-          <p>Normal<br/>(HbA1c &lt; 5.7%)</p>
-        </div>
-        <div class="stat-item">
-          <h3>2,100</h3>
-          <p>Prediabetes<br/>(5.7 ≤ HbA1c &lt; 6.5)</p>
-        </div>
-        <div class="stat-item">
-          <h3>700</h3>
-          <p>Diabetes<br/>(HbA1c ≥ 6.5)</p>
-        </div>
+        <p>
+          Over time, the histogram cycles through highlighting each category (all → normal → prediabetes → diabetes → all),
+          enabling us to visually appreciate how each subgroup’s frequency varies. The oscillation emphasizes that although
+          most individuals cluster around the “normal” range, a notable portion resides in the “prediabetes” zone,
+          reaffirming the need for timely screening.
+        </p>
+      </div>
+
+      <!-- 右侧：Population-Level HbA1c Distribution 可视化 -->
+      <div class="chart-container">
+        <h2>Population‐Level HbA1c Distribution</h2>
+        <div id="histogram"></div>
+        <p class="caption">
+          Figure 1. Distribution of HbA1c values in a representative cohort.
+        </p>
       </div>
     </div>
+  </section>
 
-    <!-- 右侧：Population-Level HbA1c Distribution 可视化 -->
-    <div class="chart-container">
-      <h2>Population‐Level HbA1c Distribution</h2>
-      <div id="histogram"></div>
-      <p class="caption">
-        Figure 1. Distribution of HbA1c values in a representative cohort.
-      </p>
-    </div>
-  </div>
-</section>
   <!-- ==============================
-       3. HbA1c 随年龄变化的趋势（折线 + 滑块）
+       3. 年龄段 & 性别 分析 —— 左右两栏：小提琴图 & 箱线图
        ============================== -->
-  <section id="trend" class="section-container">
-    <h2>HbA1c Trends Over Age</h2>
-    <div id="age-slider-container">
-      <label for="ageSlider">Select Age: </label>
-      <input type="range" id="ageSlider" />
-      <span id="ageValue"></span>
+  <section id="ageViolin" class="section-container">
+    <div class="two-column">
+      <!-- 左侧：Age & Gender 分析说明 -->
+      <div class="summary-text">
+        <h2>Age &amp; Gender Analysis</h2>
+        <p>
+          We categorized ages into four bins: <strong>0–18</strong>, <strong>20–40</strong>, <strong>40–60</strong>, <strong>60–80</strong> 
+          and plotted HbA1c distributions (violin plots) for each age group. 同时，我们还绘制了性别（Male / Female）的 HbA1c 
+          箱线图，以便比较男女两组在 HbA1c 上的分布差异。
+        </p>
+        <ul>
+          <li><strong>Age Groups:</strong> 0–18, 20–40, 40–60, 60–80</li>
+          <li><strong>Gender Groups:</strong> Male, Female</li>
+        </ul>
+        <p>通过这些图，我们可以直观地了解各年龄段以及不同性别人群的 HbA1c 分布情况。</p>
+      </div>
+
+      <!-- 右侧：两个并排的图，顶部小提琴图，底部箱线图 -->
+      <div class="chart-container">
+        <h2>HbA1c by Age Group &amp; Gender</h2>
+        <div id="violinPlot"></div>
+        <p class="caption">Figure 2a. Violin Plot: HbA1c Distribution by Age Group</p>
+        <div id="genderBoxPlot" style="margin-top: 2rem;"></div>
+        <p class="caption">Figure 2b. Box Plot: HbA1c Distribution by Gender</p>
+      </div>
     </div>
-    <div id="lineChart"></div>
-    <p class="caption">Figure 2. Change in mean HbA1c by age group (drag slider to update).</p>
   </section>
 
   <!-- ==============================

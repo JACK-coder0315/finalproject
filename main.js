@@ -1,416 +1,365 @@
 // main.js
 
-// 等待 DOM 完全加载后再执行各可视化函数
-document.addEventListener('DOMContentLoaded', function() {
-  drawHistogram();
-  drawAgeTrend();
-  drawRiskCurve();
-  drawCaseExamples();
+// 等待 DOM 完成加载后再执行所有可视化逻辑
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. 读取原始 Kaggle 数据，生成所需数据并绘制前三个可视化
+  d3.csv('data/diabetes_prediction_dataset.csv', d => ({
+    gender: d.gender,
+    age: +d.age,
+    hypertension: +d.hypertension,
+    heart_disease: +d.heart_disease,
+    smoking_history: d.smoking_history,
+    bmi: +d.bmi,
+    hbA1c: +d.HbA1c_level,
+    blood_glucose: +d.blood_glucose_level,
+    diabetes: +d.diabetes
+  })).then(rawData => {
+    // 先给每条记录添加 status 字段，用于第一个直方图
+    rawData.forEach(d => {
+      if (d.hbA1c < 5.7) d.status = 'normal';
+      else if (d.hbA1c < 6.5) d.status = 'prediabetes';
+      else d.status = 'diabetes';
+    });
+
+    drawHistogram(rawData);
+    drawAgeTrend(rawData);
+    drawRiskCurve(rawData);
+    // 个体纵向进程示例需要额外“同一个人多时点测量”的数据，此处无法从此单次测量集生成
+  }).catch(error => {
+    console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
+  });
 });
 
 /* =========================================================================
    1. 人群 HbA1c 分布 —— 直方图
+   源数据：rawData，字段包括 hbA1c、status
    ========================================================================= */
-function drawHistogram() {
-  d3.csv('data/hbA1c_population.csv', d => ({
-    hbA1c: +d.hbA1c,
-    age: +d.age,
-    sex: d.sex,
-    status: d.diagnosis_status
-  })).then(data => {
-    // 画布尺寸及边距
-    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+function drawHistogram(data) {
+  // 画布尺寸及边距
+  const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+  const width = 800 - margin.left - margin.right;
+  const height = 400 - margin.top - margin.bottom;
 
-    // 创建 SVG
-    const svg = d3.select('#histogram')
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+  // 创建 SVG
+  const svg = d3.select('#histogram')
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：HbA1c 值范围（假设最小为 4，最大为 10）
-    const x = d3.scaleLinear()
-      .domain([4, 10])
-      .nice()
-      .range([0, width]);
+  // x 轴范围：由原始数据 hbA1c 的最小/最大决定，稍微扩展一点
+  const hbA1cValues = data.map(d => d.hbA1c);
+  const x = d3.scaleLinear()
+    .domain([d3.min(hbA1cValues) - 0.5, d3.max(hbA1cValues) + 0.5])
+    .nice()
+    .range([0, width]);
 
-    // 生成 bins
-    const histogram = d3.histogram()
-      .value(d => d.hbA1c)
-      .domain(x.domain())
-      .thresholds(x.ticks(30));
+  // 生成 bins（直方图分块）
+  const histogramGen = d3.histogram()
+    .value(d => d.hbA1c)
+    .domain(x.domain())
+    .thresholds(x.ticks(30));
 
-    const bins = histogram(data);
+  const bins = histogramGen(data);
 
-    // y 轴：每个 bin 的计数
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(bins, d => d.length)])
-      .nice()
-      .range([height, 0]);
+  // y 轴：每个 bin 的计数
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(bins, d => d.length)])
+    .nice()
+    .range([height, 0]);
 
-    // 绘制柱状
-    svg.selectAll('rect')
-      .data(bins)
-      .enter()
-      .append('rect')
-        .attr('x', d => x(d.x0) + 1)
-        .attr('y', d => y(d.length))
-        .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
-        .attr('height', d => height - y(d.length))
-        .attr('fill', '#69b3a2');
+  // 绘制直方图柱子
+  svg.selectAll('rect')
+    .data(bins)
+    .enter()
+    .append('rect')
+      .attr('x', d => x(d.x0) + 1)
+      .attr('y', d => y(d.length))
+      .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+      .attr('height', d => height - y(d.length))
+      .attr('fill', '#69b3a2');
 
-    // x 轴
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x));
+  // x 轴
+  svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x));
 
-    // y 轴
-    svg.append('g')
-      .call(d3.axisLeft(y));
+  // y 轴
+  svg.append('g')
+    .call(d3.axisLeft(y));
 
-    // x 轴标签
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom - 5)
-      .attr('text-anchor', 'middle')
-      .text('HbA1c (%)');
+  // x 轴 标签
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .text('HbA1c (%)');
 
-    // y 轴标签
-    svg.append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', -margin.left + 15)
-      .attr('text-anchor', 'middle')
-      .text('Count');
-  });
+  // y 轴 标签
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .text('Count');
+
+  // Tooltip
+  const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip');
+
+  svg.selectAll('rect')
+    .on('mouseover', function(event, d) {
+      d3.select(this).attr('fill', '#ff7f0e');
+      tooltip
+        .html(`Range: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>Count: ${d.length}`)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 30) + 'px')
+        .style('opacity', 1);
+    })
+    .on('mouseout', function() {
+      d3.select(this).attr('fill', '#69b3a2');
+      tooltip.style('opacity', 0);
+    });
 }
 
 /* =========================================================================
    2. HbA1c 随年龄变化趋势 —— 折线 + 滑块高亮
+   源数据：data，字段包括 age、hbA1c
    ========================================================================= */
-function drawAgeTrend() {
-  d3.csv('data/age_hbA1c_trend.csv', d => ({
-    age: +d.age_group,
-    mean: +d.mean_hbA1c,
-    std: +d.std_hbA1c
-  })).then(data => {
-    const margin = { top: 20, right: 60, bottom: 40, left: 50 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+function drawAgeTrend(data) {
+  // 把数据按整数年龄分组，计算平均值与标准差
+  const ageGroups = d3.rollups(
+    data,
+    v => {
+      const arr = v.map(d => d.hbA1c);
+      return {
+        mean: d3.mean(arr),
+        std: d3.deviation(arr)
+      };
+    },
+    d => Math.floor(d.age)
+  );
+  // 转换成对象数组
+  const ageTrend = ageGroups.map(([age, stats]) => ({
+    age: age,
+    mean: stats.mean,
+    std: stats.std || 0
+  })).sort((a, b) => a.age - b.age);
 
-    const svg = d3.select('#lineChart')
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+  // 画布尺寸及边距
+  const margin = { top: 20, right: 60, bottom: 40, left: 50 };
+  const width = 800 - margin.left - margin.right;
+  const height = 400 - margin.top - margin.bottom;
 
-    // x 轴：年龄 20–80
-    const x = d3.scaleLinear()
-      .domain(d3.extent(data, d => d.age))
-      .range([0, width]);
+  // 创建 SVG
+  const svg = d3.select('#lineChart')
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // y 轴：HbA1c 数值
-    const y = d3.scaleLinear()
-      .domain([
-        d3.min(data, d => d.mean - d.std) - 0.2,
-        d3.max(data, d => d.mean + d.std) + 0.2
-      ])
-      .range([height, 0]);
+  // x 轴：年龄范围
+  const x = d3.scaleLinear()
+    .domain(d3.extent(ageTrend, d => d.age))
+    .range([0, width]);
 
-    // 绘制折线
-    const line = d3.line()
-      .x(d => x(d.age))
-      .y(d => y(d.mean))
-      .curve(d3.curveMonotoneX);
+  // y 轴：平均 HbA1c 范围（扩展一点，包含误差带）
+  const y = d3.scaleLinear()
+    .domain([
+      d3.min(ageTrend, d => d.mean - d.std) - 0.2,
+      d3.max(ageTrend, d => d.mean + d.std) + 0.2
+    ])
+    .range([height, 0]);
 
-    svg.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', '#ff7f0e')
-      .attr('stroke-width', 2)
-      .attr('d', line);
+  // 绘制折线
+  const line = d3.line()
+    .x(d => x(d.age))
+    .y(d => y(d.mean))
+    .curve(d3.curveMonotoneX);
 
-    // 绘制误差带（±1 std）
-    const area = d3.area()
-      .x(d => x(d.age))
-      .y0(d => y(d.mean - d.std))
-      .y1(d => y(d.mean + d.std))
-      .curve(d3.curveMonotoneX);
+  svg.append('path')
+    .datum(ageTrend)
+    .attr('fill', 'none')
+    .attr('stroke', '#ff7f0e')
+    .attr('stroke-width', 2)
+    .attr('d', line);
 
-    svg.append('path')
-      .datum(data)
-      .attr('fill', '#ff7f0e')
-      .attr('opacity', 0.2)
-      .attr('d', area);
+  // 绘制误差带（± std）
+  const area = d3.area()
+    .x(d => x(d.age))
+    .y0(d => y(d.mean - d.std))
+    .y1(d => y(d.mean + d.std))
+    .curve(d3.curveMonotoneX);
 
-    // x 轴
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).ticks(7));
-    // y 轴
-    svg.append('g')
-      .call(d3.axisLeft(y));
+  svg.append('path')
+    .datum(ageTrend)
+    .attr('fill', '#ff7f0e')
+    .attr('opacity', 0.2)
+    .attr('d', area);
 
-    // x 轴标签
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom - 5)
-      .attr('text-anchor', 'middle')
-      .text('Age (Years)');
+  // x 轴
+  svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x).ticks(7));
 
-    // y 轴标签
-    svg.append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', -margin.left + 15)
-      .attr('text-anchor', 'middle')
-      .text('Mean HbA1c (%)');
+  // y 轴
+  svg.append('g')
+    .call(d3.axisLeft(y));
 
-    // 滑块 & 高亮点
-    const ageSlider = d3.select('#ageSlider');
-    const ageValueLabel = d3.select('#ageValue');
+  // 标签
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .text('Age (Years)');
 
-    ageSlider
-      .attr('min', d3.min(data, d => d.age))
-      .attr('max', d3.max(data, d => d.age))
-      .attr('value', d3.min(data, d => d.age));
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .text('Mean HbA1c (%)');
 
-    const focusCircle = svg.append('circle')
-      .attr('r', 6)
-      .attr('fill', 'steelblue')
-      .style('opacity', 0);
+  // 滑块与高亮点
+  const ageSlider = d3.select('#ageSlider')
+    .attr('min', d3.min(ageTrend, d => d.age))
+    .attr('max', d3.max(ageTrend, d => d.age))
+    .attr('value', d3.min(ageTrend, d => d.age));
 
-    function updateAge(ageChosen) {
-      const record = data.find(d => d.age === +ageChosen);
-      if (!record) return;
-      focusCircle
-        .attr('cx', x(record.age))
-        .attr('cy', y(record.mean))
+  const ageValueLabel = d3.select('#ageValue');
+
+  const focusCircle = svg.append('circle')
+    .attr('r', 6)
+    .attr('fill', 'steelblue')
+    .style('opacity', 0);
+
+  function updateAge(chosenAge) {
+    const rec = ageTrend.find(d => d.age === +chosenAge);
+    if (!rec) return;
+    focusCircle
+      .attr('cx', x(rec.age))
+      .attr('cy', y(rec.mean))
+      .style('opacity', 1);
+    ageValueLabel.text(chosenAge);
+  }
+
+  ageSlider.on('input', function() {
+    updateAge(this.value);
+  });
+
+  // 初始高亮
+  updateAge(d3.min(ageTrend, d => d.age));
+}
+
+/* =========================================================================
+   3. HbA1c 与糖尿病风险曲线 —— 散点 + 连线 + Tooltip
+   源数据：data，字段包括 hbA1c、diabetes
+   ========================================================================= */
+function drawRiskCurve(data) {
+  // 四舍五入到小数点后一位，生成 hbA1c_round 字段
+  data.forEach(d => {
+    d.hbA1cRound = Math.round(d.hbA1c * 10) / 10;
+  });
+
+  // 按 hbA1cRound 分组，计算 diabetes==1 的比例
+  const riskGroups = d3.rollups(
+    data,
+    v => v.filter(d => d.diabetes === 1).length / v.length,
+    d => d.hbA1cRound
+  );
+  const riskData = riskGroups.map(([hb, prob]) => ({
+    hbA1c: hb,
+    risk_prob: prob
+  })).sort((a, b) => a.hbA1c - b.hbA1c);
+
+  // 画布尺寸及边距
+  const margin = { top: 20, right: 60, bottom: 40, left: 50 };
+  const width = 800 - margin.left - margin.right;
+  const height = 400 - margin.top - margin.bottom;
+
+  // 创建 SVG
+  const svg = d3.select('#riskCurve')
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // x 轴：hbA1c 值范围
+  const x = d3.scaleLinear()
+    .domain(d3.extent(riskData, d => d.hbA1c))
+    .range([0, width]);
+
+  // y 轴：概率 0–1
+  const y = d3.scaleLinear()
+    .domain([0, 1])
+    .range([height, 0]);
+
+  // 绘制散点
+  svg.selectAll('circle')
+    .data(riskData)
+    .enter()
+    .append('circle')
+      .attr('cx', d => x(d.hbA1c))
+      .attr('cy', d => y(d.risk_prob))
+      .attr('r', 4)
+      .attr('fill', '#d62728');
+
+  // 绘制连线
+  const line = d3.line()
+    .x(d => x(d.hbA1c))
+    .y(d => y(d.risk_prob))
+    .curve(d3.curveMonotoneX);
+
+  svg.append('path')
+    .datum(riskData)
+    .attr('fill', 'none')
+    .attr('stroke', '#1f77b4')
+    .attr('stroke-width', 2)
+    .attr('d', line);
+
+  // x 轴
+  svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+
+  // y 轴
+  svg.append('g')
+    .call(d3.axisLeft(y).ticks(5));
+
+  // 标签
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .text('HbA1c (%)');
+
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .text('Risk Probability');
+
+  // Tooltip
+  const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip');
+
+  svg.selectAll('circle')
+    .on('mouseover', function(event, d) {
+      d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
+      tooltip
+        .html(`HbA1c: ${d.hbA1c.toFixed(1)}%<br>Risk: ${(d.risk_prob * 100).toFixed(1)}%`)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 30) + 'px')
         .style('opacity', 1);
-      ageValueLabel.text(ageChosen);
-    }
-
-    ageSlider.on('input', function() {
-      const ageChosen = this.value;
-      updateAge(ageChosen);
+    })
+    .on('mouseout', function() {
+      d3.select(this).attr('r', 4).attr('fill', '#d62728');
+      tooltip.style('opacity', 0);
     });
-
-    // 初始高亮
-    updateAge(d3.min(data, d => d.age));
-  });
-}
-
-/* =========================================================================
-   3. HbA1c 与糖尿病风险 —— 散点 + 连线 + Tooltip
-   ========================================================================= */
-function drawRiskCurve() {
-  d3.csv('data/risk_model_data.csv', d => ({
-    hbA1c: +d.hbA1c,
-    prob: +d.risk_prob
-  })).then(data => {
-    const margin = { top: 20, right: 60, bottom: 40, left: 50 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
-
-    const svg = d3.select('#riskCurve')
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // x 轴：HbA1c
-    const x = d3.scaleLinear()
-      .domain(d3.extent(data, d => d.hbA1c))
-      .range([0, width]);
-
-    // y 轴：概率 0–1
-    const y = d3.scaleLinear()
-      .domain([0, 1])
-      .range([height, 0]);
-
-    // 绘制散点
-    svg.selectAll('circle')
-      .data(data)
-      .enter()
-      .append('circle')
-        .attr('cx', d => x(d.hbA1c))
-        .attr('cy', d => y(d.prob))
-        .attr('r', 4)
-        .attr('fill', '#d62728');
-
-    // 绘制连线
-    const line = d3.line()
-      .x(d => x(d.hbA1c))
-      .y(d => y(d.prob))
-      .curve(d3.curveMonotoneX);
-
-    svg.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', '#1f77b4')
-      .attr('stroke-width', 2)
-      .attr('d', line);
-
-    // x 轴
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x));
-    // y 轴
-    svg.append('g')
-      .call(d3.axisLeft(y).ticks(5));
-
-    // x 轴标签
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom - 5)
-      .attr('text-anchor', 'middle')
-      .text('HbA1c (%)');
-
-    // y 轴标签
-    svg.append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', -margin.left + 15)
-      .attr('text-anchor', 'middle')
-      .text('Risk Probability');
-
-    // Tooltip
-    const tooltip = d3.select('body')
-      .append('div')
-      .attr('class', 'tooltip');
-
-    svg.selectAll('circle')
-      .on('mouseover', function(event, d) {
-        d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
-        tooltip
-          .html(`HbA1c: ${d.hbA1c.toFixed(1)}%<br>Risk: ${(d.prob * 100).toFixed(1)}%`)
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 30) + 'px')
-          .style('opacity', 1);
-      })
-      .on('mouseout', function() {
-        d3.select(this).attr('r', 4).attr('fill', '#d62728');
-        tooltip.style('opacity', 0);
-      });
-  });
-}
-
-/* =========================================================================
-   4. 个体案例模拟 —— 多条折线 & 图例
-   ========================================================================= */
-function drawCaseExamples() {
-  d3.csv('data/case_examples.csv', d => ({
-    person: d.person_id,
-    t: +d.time_point,
-    hbA1c: +d.hbA1c,
-    state: d.state_level
-  })).then(data => {
-    // 按 person 分组
-    const nested = d3.group(data, d => d.person);
-
-    const margin = { top: 20, right: 100, bottom: 40, left: 50 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
-
-    const svg = d3.select('#caseCharts')
-      .append('svg')
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // x 轴：time_point (0,6,12,18)
-    const allTime = [...new Set(data.map(d => d.t))];
-    const x = d3.scalePoint()
-      .domain(allTime.sort((a, b) => a - b))
-      .range([0, width]);
-
-    // y 轴：HbA1c 数值
-    const y = d3.scaleLinear()
-      .domain([
-        d3.min(data, d => d.hbA1c) - 0.2,
-        d3.max(data, d => d.hbA1c) + 0.2
-      ])
-      .range([height, 0]);
-
-    // 颜色：不同 person
-    const color = d3.scaleOrdinal(d3.schemeCategory10)
-      .domain(Array.from(nested.keys()));
-
-    // 绘制每条折线及节点
-    const line = d3.line()
-      .x(d => x(d.t))
-      .y(d => y(d.hbA1c))
-      .curve(d3.curveStepAfter);
-
-    for (const [person, records] of nested.entries()) {
-      svg.append('path')
-        .datum(records.sort((a, b) => a.t - b.t))
-        .attr('fill', 'none')
-        .attr('stroke', color(person))
-        .attr('stroke-width', 2)
-        .attr('d', line);
-
-      svg.selectAll(`.point-${person}`)
-        .data(records)
-        .enter()
-        .append('circle')
-          .attr('class', `point-${person}`)
-          .attr('cx', d => x(d.t))
-          .attr('cy', d => y(d.hbA1c))
-          .attr('r', 4)
-          .attr('fill', color(person))
-          .attr('stroke', d => {
-            if (d.state === 'normal') return 'green';
-            if (d.state === 'prediabetes') return 'orange';
-            if (d.state === 'diabetes') return 'red';
-          })
-          .attr('stroke-width', 2);
-    }
-
-    // 坐标轴
-    svg.append('g')
-      .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).tickFormat(d => `${d} mo`));
-    svg.append('g')
-      .call(d3.axisLeft(y));
-
-    // 图例
-    const legend = svg.append('g')
-      .attr('transform', `translate(${width + 20},20)`);
-    Array.from(nested.keys()).forEach((person, i) => {
-      const yOffset = i * 20;
-      legend.append('rect')
-        .attr('x', 0)
-        .attr('y', yOffset)
-        .attr('width', 10)
-        .attr('height', 10)
-        .attr('fill', color(person));
-      legend.append('text')
-        .attr('x', 15)
-        .attr('y', yOffset + 9)
-        .text(`Person ${person}`)
-        .attr('font-size', '12px');
-    });
-
-    // x 轴标签
-    svg.append('text')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom - 5)
-      .attr('text-anchor', 'middle')
-      .text('Time (months)');
-
-    // y 轴标签
-    svg.append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('x', -height / 2)
-      .attr('y', -margin.left + 15)
-      .attr('text-anchor', 'middle')
-      .text('HbA1c (%)');
-  });
 }

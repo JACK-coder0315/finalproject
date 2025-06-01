@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HbA1c &amp; Early Diabetes Risk Visualization</title>
 
-  <!-- 引入 D3.js -->
+  <!-- ====== 引入 D3.js ====== -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 
-  <!-- 自定义样式 -->
+  <!-- ====== 自定义样式 ====== -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 顶部导航栏 -->
+  <!-- ==============================
+       顶部导航栏（固定）
+       ============================== -->
   <nav id="navbar">
     <ul>
       <li><a href="#intro">Introduction</a></li>
@@ -24,7 +26,9 @@
     </ul>
   </nav>
 
-  <!-- 1. 引言部分 -->
+  <!-- ==============================
+       1. 引言部分
+       ============================== -->
   <section id="intro" class="section-container">
     <h1>What is HbA1c and Why Does It Matter?</h1>
     <p>
@@ -46,46 +50,62 @@
     </p>
   </section>
 
-  <!-- 2. 人群 HbA1c 分布 -->
+  <!-- ==============================
+       2. 人群 HbA1c 分布（直方图）
+       ============================== -->
   <section id="dist" class="section-container">
     <h2>Population-Level HbA1c Distribution</h2>
+    <!-- 下面这个 div 要与 main.js 中 drawHistogram() 里 d3.select('#histogram') 相对应 -->
     <div id="histogram"></div>
     <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
   </section>
 
-  <!-- 3. HbA1c 随年龄变化的趋势 -->
+  <!-- ==============================
+       3. HbA1c 随年龄变化的趋势（折线 + 滑块）
+       ============================== -->
   <section id="trend" class="section-container">
     <h2>HbA1c Trends Over Age</h2>
+    <!-- 下面 slider 的 ID 要与 main.js 中 drawAgeTrend() 对应 -->
     <div id="age-slider-container">
       <label for="ageSlider">Select Age: </label>
-      <input type="range" id="ageSlider" min="20" max="80" step="1" value="20" />
-      <span id="ageValue">20</span>
+      <!-- 不需要在这里写 min/max/value，main.js 会动态设置 -->
+      <input type="range" id="ageSlider" />
+      <span id="ageValue"></span>
     </div>
+    <!-- 下面这个 div 要与 main.js 中 drawAgeTrend() 里 d3.select('#lineChart') 相对应 -->
     <div id="lineChart"></div>
     <p class="caption">Figure 2. Change in mean HbA1c by age group (drag slider to update).</p>
   </section>
 
-  <!-- 4. HbA1c 与糖尿病风险曲线 -->
+  <!-- ==============================
+       4. HbA1c 与糖尿病风险曲线（散点 + 连线）
+       ============================== -->
   <section id="risk" class="section-container">
     <h2>HbA1c vs. Diabetes Risk</h2>
+    <!-- 这个 div 要与 main.js 中 drawRiskCurve() 里 d3.select('#riskCurve') 相对应 -->
     <div id="riskCurve"></div>
     <p class="caption">Figure 3. Estimated probability of developing type 2 diabetes as HbA1c increases.</p>
   </section>
 
-  <!-- 5. 个体案例模拟 -->
+  <!-- ==============================
+       5. 个体案例模拟（如果有纵向数据，可放到这里；否则留空或删掉）
+       ============================== -->
   <section id="case" class="section-container">
     <h2>Individual Progression Examples</h2>
+    <!-- 如果你在后面准备了 case_examples.csv 并实现了 drawCaseExamples()，要把这个 div 留着 -->
     <div id="caseCharts"></div>
     <p class="caption">Figure 4. Example trajectories from normal → prediabetes → diabetes.</p>
   </section>
 
-  <!-- 6. 结论与参考文献 -->
+  <!-- ==============================
+       6. 结论与参考文献
+       ============================== -->
   <section id="conclusion" class="section-container">
     <h2>Conclusions &amp; References</h2>
     <ul>
       <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises significantly; lifestyle interventions should be initiated immediately.</li>
       <li>Across different age groups, the average HbA1c increases with age, with a particularly faster rise after middle age.</li>
-      <li>Based on a logistic regression model, each 1 % increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c < 6.5 %.</li>
+      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
       <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay progression from the “prediabetes” stage for some people.</li>
     </ul>
     <h3>References</h3>
@@ -98,8 +118,10 @@
     </ol>
   </section>
 
-  <!-- 引入自定义脚本 -->
+  <!-- ==============================
+       引入自定义脚本（必须放在 body 底部）
+       ============================== -->
+  <!-- main.js 中包含了 drawHistogram、drawAgeTrend、drawRiskCurve 等函数 -->
   <script src="main.js"></script>
 </body>
 </html>
-f

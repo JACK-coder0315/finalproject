@@ -7,7 +7,8 @@
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     height: 100%;
     font-family: 'Inter', "Helvetica Neue", sans-serif;
     color: #333;
@@ -20,21 +21,27 @@ html, body {
    0. CSS 变量：配色 / 圆角 / 阴影
    ======================================================================== */
 :root {
-  --color-primary: #6C63FF;           /* 主紫色 */
-  --color-highlight: #6C63FF;         /* 强调色 */
-  --color-secondary-text: #555555;    /* 深灰文字 */
-  --color-btn-primary: #6C63FF;       /* 按钮实底色 */
-  --color-btn-primary-hover: #5951d4;
-  --color-btn-secondary: transparent;
-  --color-btn-secondary-text: #6C63FF;
-  --color-btn-secondary-border: #6C63FF;
-  --color-btn-secondary-hover-bg: #f2f2ff;
-  --color-graphic-bg: #6C63FF;         /* 右侧容器背景色 */
-  --color-decor-icon-bg: #FFB664;      /* 橘黄色小图标背景 */
-  --border-radius: 20px;
-  --border-radius-small: 8px;
-  --shadow-default: rgba(0,0,0,0.1);
-  --shadow-graphic: 0 20px 40px rgba(0,0,0,0.15);
+    --color-primary: #6C63FF;
+    /* 主紫色 */
+    --color-highlight: #6C63FF;
+    /* 强调色 */
+    --color-secondary-text: #555555;
+    /* 深灰文字 */
+    --color-btn-primary: #6C63FF;
+    /* 按钮实底色 */
+    --color-btn-primary-hover: #5951d4;
+    --color-btn-secondary: transparent;
+    --color-btn-secondary-text: #6C63FF;
+    --color-btn-secondary-border: #6C63FF;
+    --color-btn-secondary-hover-bg: #f2f2ff;
+    --color-graphic-bg: #6C63FF;
+    /* 右侧容器背景色 */
+    --color-decor-icon-bg: #FFB664;
+    /* 橘黄色小图标背景 */
+    --border-radius: 20px;
+    --border-radius-small: 8px;
+    --shadow-default: rgba(0, 0, 0, 0.1);
+    --shadow-graphic: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 /* ========================================================================
@@ -76,138 +83,151 @@ nav#navbar a:hover {
    0.5. Hero Section 布局（新增部分）
    ======================================================================== */
 .hero-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5rem 2rem 2rem; /* 顶部留出导航 5rem */
-  gap: 2rem;
-  margin-top: 60px; /* 避免导航栏遮挡 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5rem 2rem 2rem;
+    /* 顶部留出导航 5rem */
+    gap: 2rem;
+    margin-top: 60px;
+    /* 避免导航栏遮挡 */
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 @media screen and (max-width: 768px) {
-  .hero-section {
-    flex-direction: column;
-    text-align: center;
-    padding: 3rem 1rem 1rem;
-    margin-top: 60px;
-  }
-  .hero-graphic {
-    margin-top: 2rem;
-  }
+    .hero-section {
+        flex-direction: column;
+        text-align: center;
+        padding: 3rem 1rem 1rem;
+        margin-top: 60px;
+    }
+
+    .hero-graphic {
+        margin-top: 2rem;
+    }
 }
 
 .hero-text {
-  flex: 1 1 400px;
-  max-width: 600px;
+    flex: 1 1 400px;
+    max-width: 600px;
 }
 
 .hero-title {
-  font-size: 2.75rem;
-  font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 1rem;
-  color: #333333;
+    font-size: 2.75rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    color: #333333;
 }
 
 .hero-title .highlight {
-  color: var(--color-highlight);
+    color: var(--color-highlight);
 }
 
 .hero-subtitle {
-  font-size: 1.125rem;
-  font-weight: 400;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-  color: var(--color-secondary-text);
+    font-size: 1.125rem;
+    font-weight: 400;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    color: var(--color-secondary-text);
 }
 
 .hero-buttons {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .btn {
-  display: inline-block;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1rem;
-  border-radius: var(--border-radius-small);
-  padding: 0.75rem 1.5rem;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    display: inline-block;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: var(--border-radius-small);
+    padding: 0.75rem 1.5rem;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-primary {
-  background-color: var(--color-btn-primary);
-  color: #ffffff;
-  border: none;
+    background-color: var(--color-btn-primary);
+    color: #ffffff;
+    border: none;
 }
+
 .btn-primary:hover {
-  background-color: var(--color-btn-primary-hover);
+    background-color: var(--color-btn-primary-hover);
 }
 
 .btn-secondary {
-  background-color: var(--color-btn-secondary);
-  color: var(--color-btn-secondary-text);
-  border: 2px solid var(--color-btn-secondary-border);
+    background-color: var(--color-btn-secondary);
+    color: var(--color-btn-secondary-text);
+    border: 2px solid var(--color-btn-secondary-border);
 }
+
 .btn-secondary:hover {
-  background-color: var(--color-btn-secondary-hover-bg);
+    background-color: var(--color-btn-secondary-hover-bg);
 }
 
 /* 右侧紫色圆角容器及装饰图标 */
 .hero-graphic {
-  flex: 1 1 400px;
-  display: flex;
-  justify-content: center;
-  position: relative;
+    flex: 1 1 400px;
+    display: flex;
+    justify-content: center;
+    position: relative;
 }
 
 .graphic-container {
-  position: relative;
-  width: 380px;
-  height: 300px;
-  background-color: var(--color-graphic-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-graphic);
-  overflow: hidden;
+    position: relative;
+    width: 380px;
+    height: 300px;
+    background-color: var(--color-graphic-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-graphic);
+    overflow: hidden;
 }
 
 .graphic-container .main-image {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 260px;   /* 可根据你插画调整 */
-  height: auto;
-  object-fit: contain;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 260px;
+    /* 可根据你插画调整 */
+    height: auto;
+    object-fit: contain;
 }
 
 /* 装饰性小图标 */
 .decor-icon {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-decor-icon-bg);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  font-size: 1.2rem;
-  cursor: default;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-decor-icon-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-size: 1.2rem;
+    cursor: default;
 }
 
 /* 左中部一个小装饰 icon */
 .icon-left {
-  top: calc(50% - 20px);   /* 40px 高度的一半 */
-  left: -20px;             /* 往左偏一点，半个图标宽度 */
+    top: calc(50% - 20px);
+    /* 40px 高度的一半 */
+    left: -20px;
+    /* 往左偏一点，半个图标宽度 */
 }
 
 /* 右上角一个小装饰 icon */
 .icon-top-right {
-  top: -20px;              /* 往上偏一点 */
-  right: -20px;            /* 往右偏一点 */
+    top: -20px;
+    /* 往上偏一点 */
+    right: -20px;
+    /* 往右偏一点 */
 }
 
 /* ========================================================================

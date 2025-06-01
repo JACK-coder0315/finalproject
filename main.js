@@ -579,14 +579,17 @@ function drawRiskCurve(data) {
 
 
 /* =========================================================================
-   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色
+   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条）
    ========================================================================= */
 function drawComboScatter(data) {
-  // 清空上一次的 SVG 及 Tooltip
+  // —— 1. 只保留前 2000 条数据 —— 
+  const plotData = data.slice(0, 2000);
+
+  // —— 2. 清空上一次的 SVG 及 Tooltip —— 
   d3.select('#comboScatter').selectAll('*').remove();
   d3.selectAll('.tooltip').remove();
 
-  // 设置 margin 和 SVG 大小
+  // —— 3. 设置 margin 和 SVG 大小 —— 
   const margin = { top: 40, right: 180, bottom: 60, left: 60 };
   const container = document.getElementById('comboScatter');
   const containerWidth = container.clientWidth;
@@ -594,7 +597,7 @@ function drawComboScatter(data) {
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // 创建 SVG 画布
+  // —— 4. 创建 SVG 画布 —— 
   const svg = d3.select('#comboScatter')
     .append('svg')
     .attr('width', containerWidth)
@@ -602,29 +605,29 @@ function drawComboScatter(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // X 轴刻度：BMI
-  const xMin = d3.min(data, d => d.bmi) - 1;
-  const xMax = d3.max(data, d => d.bmi) + 1;
+  // —— 5. X 轴刻度：BMI（仅基于 plotData） —— 
+  const xMin = d3.min(plotData, d => d.bmi) - 1;
+  const xMax = d3.max(plotData, d => d.bmi) + 1;
   const xScale = d3.scaleLinear()
     .domain([xMin, xMax])
     .range([0, width]);
 
-  // Y 轴刻度：HbA1c
-  const yMin = d3.min(data, d => d.hbA1c) - 0.2;
-  const yMax = d3.max(data, d => d.hbA1c) + 0.2;
+  // —— 6. Y 轴刻度：HbA1c（仅基于 plotData） —— 
+  const yMin = d3.min(plotData, d => d.hbA1c) - 0.2;
+  const yMax = d3.max(plotData, d => d.hbA1c) + 0.2;
   const yScale = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
 
-  // 绘制 X 轴
+  // —— 7. 绘制 X 轴 —— 
   svg.append('g')
     .attr('transform', `translate(0, ${height})`)
     .call(d3.axisBottom(xScale).ticks(8));
-  // 绘制 Y 轴
+  // —— 8. 绘制 Y 轴 —— 
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
 
-  // X 轴标签
+  // —— 9. X 轴标签 —— 
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + 40)
@@ -632,7 +635,7 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('BMI');
 
-  // Y 轴标签
+  // —— 10. Y 轴标签 —— 
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -height / 2)
@@ -641,23 +644,22 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('HbA1c (%)');
 
-  // 创建 Tooltip 容器
+  // —— 11. 创建 Tooltip 容器 —— 
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // “comboKey” 表示四个二元字段拼接成的字符串，例如 "1-0-1-0"
-  // 提取所有不重复的 comboKey
-  const uniqueCombos = Array.from(new Set(data.map(d => d.comboKey)));
+  // —— 12. 提取 plotData 中所有不重复的 comboKey —— 
+  const uniqueCombos = Array.from(new Set(plotData.map(d => d.comboKey)));
 
-  // 为每个 comboKey 分配一种颜色，使用 d3.interpolateRainbow
+  // —— 13. 为每个 comboKey 分配一种颜色 —— 
   const colorScale = d3.scaleOrdinal()
     .domain(uniqueCombos)
     .range(uniqueCombos.map((_, i) => d3.interpolateRainbow(i / (uniqueCombos.length - 1))));
 
-  // 绘制散点
+  // —— 14. 绘制散点 —— 
   svg.selectAll('.dot')
-    .data(data)
+    .data(plotData)
     .enter()
     .append('circle')
     .attr('class', 'dot')
@@ -673,7 +675,7 @@ function drawComboScatter(data) {
         .attr('stroke', '#333')
         .attr('stroke-width', 1);
 
-      // 构造 tooltip 文本
+      // 构造并显示 tooltip 文本
       const textHtml = `
         <strong>Hypertension:</strong> ${d.hypertension === 1 ? 'Yes' : 'No'}<br>
         <strong>Heart Disease:</strong> ${d.heart_disease === 1 ? 'Yes' : 'No'}<br>
@@ -695,7 +697,7 @@ function drawComboScatter(data) {
       tooltip.style('opacity', 0);
     });
 
-  // 在右侧绘制图例（Legend）
+  // —— 15. 在右侧绘制图例（Legend） —— 
   const legend = svg.append('g')
     .attr('class', 'legend')
     .attr('transform', `translate(${width + 20}, 0)`);

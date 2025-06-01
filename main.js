@@ -944,10 +944,10 @@ function drawViolinByStatus(rawData) {
   );
 
   // 12) 小提琴图水平伸展比例尺：
-  //     让小提琴最大半宽为 bandwidth * 0.95
+  //     让小提琴最大半宽为 bandwidth * 0.7
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
-    .range([0, x.bandwidth() * 0.95]);
+    .range([0, x.bandwidth() * 0.7]);
 
   // 13) 给不同状态指定填充色和描边色
   const fillColors = {

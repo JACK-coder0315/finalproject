@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     drawHistogram(rawData);
     drawAgeTrend(rawData);
     drawRiskCurve(rawData);
-    // 如果不需要箱线＋小提琴图组合，就直接注释掉下面这一行：
+    drawClusterPlot(rawData);
+    // 如果需要箱线＋小提琴图组合，可取消注释
     // drawViolinBoxPlot(rawData);
   }).catch(error => {
     console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
@@ -38,9 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* =========================================================================
    1. 人群 HbA1c 分布 —— 动态直方图
-   说明：
-   - 初始每个柱子从底部“长出”；
-   - 自动循环展示：all → normal → prediabetes → diabetes → all。
    ========================================================================= */
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
@@ -54,13 +52,11 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 各分类数据
   const dataAll = data;
   const dataNormal = data.filter(d => d.status === 'normal');
   const dataPre = data.filter(d => d.status === 'prediabetes');
   const dataDia = data.filter(d => d.status === 'diabetes');
 
-  // x 轴刻度范围
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
@@ -69,7 +65,6 @@ function drawHistogram(data) {
     .domain(xDomain)
     .range([0, width]);
 
-  // histogram 生成器
   const histogramGen = d3.histogram()
     .value(d => d.hbA1c)
     .domain(x.domain())
@@ -80,29 +75,23 @@ function drawHistogram(data) {
   const binsPre = histogramGen(dataPre);
   const binsDia = histogramGen(dataDia);
 
-  // 初始使用所有数据的 bins
   let currentBins = binsAll;
 
-  // y 轴 scale
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // 绘制 x 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // 绘制 y 轴
   const yAxis = svg.append('g')
     .call(d3.axisLeft(y));
 
-  // Tooltip
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 创建初始矩形（柱子）
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
@@ -113,7 +102,6 @@ function drawHistogram(data) {
       .attr('height', 0)
       .attr('fill', '#69b3a2');
 
-  // 鼠标交互
   rects
     .on('mouseover', function (event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
@@ -128,13 +116,11 @@ function drawHistogram(data) {
       tooltip.style('opacity', 0);
     });
 
-  // 初始过渡：让柱子“从底部长出”
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // 分类顺序循环：all → normal → prediabetes → diabetes → all
   const categories = [
     { name: 'all', bins: binsAll },
     { name: 'normal', bins: binsNor },
@@ -148,7 +134,6 @@ function drawHistogram(data) {
     updateHistogram(categories[idx].bins);
   }, 2500);
 
-  // 更新函数：更新 y 轴和柱子高度
   function updateHistogram(nextBins) {
     y.domain([0, d3.max(nextBins, d => d.length)]).nice();
     yAxis.transition().duration(800).call(d3.axisLeft(y));
@@ -165,10 +150,9 @@ function drawHistogram(data) {
 
 
 /* =========================================================================
-   2. HbA1c 随年龄变化趋势 —— 带动态动画的折线图 + 自动滑块
+   2. HbA1c 随年龄变化趋势 —— 带动画折线 + 自动滑块
    ========================================================================= */
 function drawAgeTrend(data) {
-  // 计算每个整数年龄的 mean 与 std
   const ageGroups = d3.rollups(
     data,
     v => {
@@ -197,12 +181,10 @@ function drawAgeTrend(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴：年龄
   const x = d3.scaleLinear()
     .domain(d3.extent(ageTrend, d => d.age))
     .range([0, width]);
 
-  // y 轴：平均 HbA1c ± std
   const y = d3.scaleLinear()
     .domain([
       d3.min(ageTrend, d => d.mean - d.std) - 0.2,
@@ -210,7 +192,6 @@ function drawAgeTrend(data) {
     ])
     .range([height, 0]);
 
-  // 折线与误差带定义
   const line = d3.line()
     .x(d => x(d.age))
     .y(d => y(d.mean))
@@ -222,7 +203,6 @@ function drawAgeTrend(data) {
     .y1(d => y(d.mean + d.std))
     .curve(d3.curveMonotoneX);
 
-  // 绘制折线并添加描边动画
   const path = svg.append('path')
     .datum(ageTrend)
     .attr('fill', 'none')
@@ -238,7 +218,6 @@ function drawAgeTrend(data) {
     .duration(1500)
     .attr('stroke-dashoffset', 0);
 
-  // 绘制误差带（先隐藏，稍后淡入）
   const areaPath = svg.append('path')
     .datum(ageTrend)
     .attr('fill', '#ff7f0e')
@@ -249,14 +228,12 @@ function drawAgeTrend(data) {
     .transition().delay(800).duration(800)
     .attr('opacity', 0.2);
 
-  // 坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x).ticks(7));
   svg.append('g')
     .call(d3.axisLeft(y));
 
-  // 轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
@@ -269,7 +246,6 @@ function drawAgeTrend(data) {
     .attr('text-anchor', 'middle')
     .text('Mean HbA1c (%)');
 
-  // 滑块 & 高亮点
   const ageSlider = d3.select('#ageSlider');
   const ageValueLabel = d3.select('#ageValue');
 
@@ -314,7 +290,6 @@ function drawAgeTrend(data) {
     updateAge(this.value);
   });
 
-  // 初始绘制 & 自动播放
   updateAge(d3.min(ages));
   startAutoPlay();
 }
@@ -325,12 +300,10 @@ function drawAgeTrend(data) {
    3. HbA1c vs. Diabetes Risk Curve —— 动态散点 + 描边曲线 + 网格线淡入 + Tooltip
    ========================================================================= */
 function drawRiskCurve(data) {
-  // 将 HbA1c 四舍五入到 0.1
   data.forEach(d => {
     d.hbA1cRound = Math.round(d.hbA1c * 10) / 10;
   });
 
-  // 按四舍五入后的 HbA1c 分组，计算 diabetes == 1 的比例
   const riskGroups = d3.rollups(
     data,
     v => v.filter(d => d.diabetes === 1).length / v.length,
@@ -352,17 +325,14 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴：HbA1c 值
   const x = d3.scaleLinear()
     .domain(d3.extent(riskData, d => d.hbA1c))
     .range([0, width]);
 
-  // y 轴：概率 0–1
   const y = d3.scaleLinear()
     .domain([0, 1])
     .range([height, 0]);
 
-  // 背景网格线（先隐藏）
   const yGrid = d3.axisLeft(y)
     .tickSize(-width)
     .tickFormat('')
@@ -373,7 +343,6 @@ function drawRiskCurve(data) {
     .attr('opacity', 0)
     .call(yGrid);
 
-  // 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
@@ -381,7 +350,6 @@ function drawRiskCurve(data) {
   svg.append('g')
     .call(d3.axisLeft(y).ticks(5));
 
-  // 轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
@@ -394,12 +362,10 @@ function drawRiskCurve(data) {
     .attr('text-anchor', 'middle')
     .text('Risk Probability');
 
-  // Tooltip
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 绘制散点，初始半径 r = 0，逐个“长出”
   const circles = svg.selectAll('circle')
     .data(riskData)
     .enter()
@@ -414,7 +380,6 @@ function drawRiskCurve(data) {
     .duration(500)
     .attr('r', 4);
 
-  // 绘制连线（先隐藏，通过描边动画再显现）
   const line = d3.line()
     .x(d => x(d.hbA1c))
     .y(d => y(d.risk_prob))
@@ -433,19 +398,16 @@ function drawRiskCurve(data) {
       return this.getTotalLength();
     });
 
-  // 连线描边动画
   riskPath.transition()
     .delay(riskData.length * 30 + 200)
     .duration(1200)
     .attr('stroke-dashoffset', 0);
 
-  // 网格线淡入
   gridGroup.transition()
     .delay(riskData.length * 30 + 800)
     .duration(800)
     .attr('opacity', 1);
 
-  // 悬停交互：散点放大 + Tooltip
   circles
     .on('mouseover', function (event, d) {
       d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
@@ -464,9 +426,209 @@ function drawRiskCurve(data) {
 
 
 /* =========================================================================
-   4. 血糖浓度分布 —— 小提琴 + 箱线图组合
-   如果不需要这部分，可直接注释掉 drawViolinBoxPlot(rawData) 的调用，
-   或者将整个函数体删除 / 注释掉。
+   4. K-Means 聚类 & 轮播高亮显示函数
+   在 #clusterPlot 中绘制横轴 HbA1c、纵轴 blood_glucose 的散点聚类图。
+   簇数 k=3，依次高亮“低风险→中风险→高风险”人群。
+   ========================================================================= */
+function kmeans2D(data, k, maxIter = 30) {
+  const centroids = [];
+  const used = new Set();
+  while (centroids.length < k) {
+    const idx = Math.floor(Math.random() * data.length);
+    if (!used.has(idx)) {
+      used.add(idx);
+      centroids.push({ x: data[idx].hbA1c, y: data[idx].blood_glucose });
+    }
+  }
+
+  let assignments = new Array(data.length).fill(0);
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let changed = false;
+    for (let i = 0; i < data.length; i++) {
+      const dx = data[i].hbA1c, dy = data[i].blood_glucose;
+      let bestC = 0, bestDist = Infinity;
+      for (let c = 0; c < k; c++) {
+        const cx = centroids[c].x, cy = centroids[c].y;
+        const dist = (dx - cx) ** 2 + (dy - cy) ** 2;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestC = c;
+        }
+      }
+      if (assignments[i] !== bestC) {
+        changed = true;
+        assignments[i] = bestC;
+      }
+    }
+    const sums = new Array(k).fill(0).map(() => ({ x: 0, y: 0, count: 0 }));
+    for (let i = 0; i < data.length; i++) {
+      const c = assignments[i];
+      sums[c].x += data[i].hbA1c;
+      sums[c].y += data[i].blood_glucose;
+      sums[c].count += 1;
+    }
+    for (let c = 0; c < k; c++) {
+      if (sums[c].count > 0) {
+        centroids[c].x = sums[c].x / sums[c].count;
+        centroids[c].y = sums[c].y / sums[c].count;
+      }
+    }
+    if (!changed) break;
+  }
+
+  return { centroids, assignments };
+}
+
+function drawClusterPlot(rawData) {
+  // 过滤 NaN
+  const filtered = rawData.filter(d =>
+    !isNaN(d.hbA1c) && !isNaN(d.blood_glucose)
+  );
+
+  // 执行 k-means, k=3
+  const { centroids, assignments } = kmeans2D(filtered, 3, 30);
+  filtered.forEach((d, i) => d.cluster = assignments[i]);
+
+  // 按 centroid.x 排序，映射到风险标签
+  const centroidOrder = centroids
+    .map((c, idx) => ({ idx, hbA1c: c.x }))
+    .sort((a, b) => a.hbA1c - b.hbA1c)
+    .map(d => d.idx);
+
+  const riskLabels = ['低风险', '中风险', '高风险'];
+  const clusterToRisk = {};
+  centroidOrder.forEach((clusterIdx, i) => {
+    clusterToRisk[clusterIdx] = riskLabels[i];
+  });
+
+  // 画布
+  const margin = { top: 20, right: 40, bottom: 50, left: 60 };
+  const width = 700 - margin.left - margin.right;
+  const height = 450 - margin.top - margin.bottom;
+
+  const svg = d3.select('#clusterPlot')
+    .append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // x 轴：hbA1c
+  const xMin = d3.min(filtered, d => d.hbA1c);
+  const xMax = d3.max(filtered, d => d.hbA1c);
+  const x = d3.scaleLinear()
+    .domain([xMin - 0.5, xMax + 0.5])
+    .range([0, width]);
+
+  // y 轴：blood_glucose
+  const yMin = d3.min(filtered, d => d.blood_glucose);
+  const yMax = d3.max(filtered, d => d.blood_glucose);
+  const y = d3.scaleLinear()
+    .domain([yMin - 5, yMax + 5])
+    .range([height, 0]);
+
+  svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+  svg.append('g')
+    .call(d3.axisLeft(y));
+
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 10)
+    .attr('text-anchor', 'middle')
+    .text('HbA1c (%)');
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .text('Blood Glucose (mg/dL)');
+
+  const clusterColors = ['#2a9d8f', '#e76f51', '#9d0208'];
+  const defaultColor = '#cccccc';
+  const radius = 4;
+  const highlightRadius = 6;
+
+  const dots = svg.selectAll('.dot')
+    .data(filtered)
+    .enter()
+    .append('circle')
+      .attr('class', 'dot')
+      .attr('cx', d => x(d.hbA1c))
+      .attr('cy', d => y(d.blood_glucose))
+      .attr('r', radius)
+      .attr('fill', defaultColor)
+      .attr('opacity', 0.5);
+
+  // 绘制质心
+  svg.selectAll('.centroid')
+    .data(centroids)
+    .enter()
+    .append('circle')
+      .attr('class', 'centroid')
+      .attr('cx', d => x(d.x))
+      .attr('cy', d => y(d.y))
+      .attr('r', 8)
+      .attr('fill', (d,i) => clusterColors[ centroidOrder.indexOf(i) ])
+      .attr('stroke', '#000')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.8);
+
+  // 图例
+  const legend = svg.append('g')
+    .attr('transform', `translate(${width - 120}, 10)`);
+
+  riskLabels.forEach((label, i) => {
+    const yOff = i * 20;
+    legend.append('rect')
+      .attr('x', 0)
+      .attr('y', yOff)
+      .attr('width', 12)
+      .attr('height', 12)
+      .attr('fill', clusterColors[i]);
+    legend.append('text')
+      .attr('x', 18)
+      .attr('y', yOff + 10)
+      .text(label)
+      .attr('font-size', '12px')
+      .attr('alignment-baseline', 'middle');
+  });
+
+  let currentHighlight = 0;
+  function highlightCluster(clusterIdx) {
+    dots.transition()
+      .duration(300)
+      .attr('fill', d => {
+        return (clusterToRisk[d.cluster] === riskLabels[clusterIdx])
+          ? clusterColors[clusterIdx]
+          : defaultColor;
+      })
+      .attr('r', d => {
+        return (clusterToRisk[d.cluster] === riskLabels[clusterIdx])
+          ? highlightRadius
+          : radius;
+      })
+      .attr('opacity', d => {
+        return (clusterToRisk[d.cluster] === riskLabels[clusterIdx])
+          ? 0.9
+          : 0.1;
+      });
+  }
+
+  highlightCluster(0);
+  d3.interval(() => {
+    currentHighlight = (currentHighlight + 1) % 3;
+    highlightCluster(currentHighlight);
+  }, 2000);
+}
+
+
+
+/* =========================================================================
+   5. 血糖浓度分布 —— 小提琴 + 箱线图组合
+   如果不需要，可以删除或注释掉 drawViolinBoxPlot 的调用
    ========================================================================= */
 function drawViolinBoxPlot(data) {
   const ageGroups = Array.from(new Set(data.map(d => d.ageDecade))).sort((a, b) => {
@@ -503,7 +665,6 @@ function drawViolinBoxPlot(data) {
     .nice()
     .range([height, 0]);
 
-  // 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x0))
@@ -514,7 +675,6 @@ function drawViolinBoxPlot(data) {
   svg.append('g')
     .call(d3.axisLeft(y));
 
-  // 轴标签
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 10)
@@ -528,7 +688,6 @@ function drawViolinBoxPlot(data) {
     .attr('text-anchor', 'middle')
     .text('Blood Glucose Level (mg/dL)');
 
-  // KDE 函数
   function kernelDensityEstimator(kernel, X) {
     return function (V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -596,7 +755,6 @@ function drawViolinBoxPlot(data) {
       `)
       .attr('opacity', 0);
 
-  // 绘制小提琴
   groupContainer.each(function (d) {
     const grp = d3.select(this);
     if (!d.density.length) return;
@@ -626,7 +784,6 @@ function drawViolinBoxPlot(data) {
       .attr('opacity', 0.6);
   });
 
-  // 绘制箱线（如果需要，可保留；若不想要，可以删除以下几行）
   groupContainer.each(function (d) {
     const grp = d3.select(this);
     if (!d.box) return;
@@ -687,7 +844,6 @@ function drawViolinBoxPlot(data) {
     .duration(800)
     .attr('opacity', 1);
 
-  // 如果不需要图例，也可以删除以下几行
   const legend = svg.append('g')
     .attr('transform', `translate(${width + 20}, 20)`);
 

@@ -1,6 +1,5 @@
 // main.js
 
-// 等待 DOM 完全加载后执行
 document.addEventListener('DOMContentLoaded', () => {
   // 读取原始 Kaggle 数据
   d3.csv('data/diabetes_prediction_dataset.csv', d => ({
@@ -14,51 +13,44 @@ document.addEventListener('DOMContentLoaded', () => {
     blood_glucose: +d.blood_glucose_level,
     diabetes: +d.diabetes                // 0 / 1
   })).then(rawData => {
-    // 为每条记录添加 status（HbA1c 状态）、ageGroup、high_bmi、smoker
+    // 为每条记录添加额外字段
     rawData.forEach(d => {
       // HbA1c 状态
       if (d.hbA1c < 5.7) d.status = 'normal';
       else if (d.hbA1c < 6.5) d.status = 'prediabetes';
       else d.status = 'diabetes';
 
-      // 年龄分组：0-20, 20-40, 40-60, 60-80
-      if (d.age <= 20) {
-        d.ageGroup = '0–20';
-      } else if (d.age > 20 && d.age <= 40) {
-        d.ageGroup = '20–40';
-      } else if (d.age > 40 && d.age <= 60) {
-        d.ageGroup = '40–60';
-      } else if (d.age > 60 && d.age <= 80) {
-        d.ageGroup = '60–80';
-      } else {
-        d.ageGroup = 'Other';
-      }
+      // 年龄分组（0-20,20-40,40-60,60-80,Other）
+      if (d.age <= 20) d.ageGroup = '0–20';
+      else if (d.age <= 40) d.ageGroup = '20–40';
+      else if (d.age <= 60) d.ageGroup = '40–60';
+      else if (d.age <= 80) d.ageGroup = '60–80';
+      else d.ageGroup = 'Other';
 
-      // High BMI（二元）：BMI ≥ 25 为高 BMI
+      // High BMI（二元）
       d.high_bmi = d.bmi >= 25 ? 1 : 0;
 
-      // 将 smoking_history 转为二元 smoker 字段
+      // smoker 二元：只要 smoking_history 不是 “never” 或 “no”，就算 1
       const sh = d.smoking_history.trim().toLowerCase();
-      // "never" 或 "no" 视为 0，其余视为 1
       d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
     });
 
-    // 执行原有的可视化
+    // 绘制其他图表（直方图、Violin+Box、风险曲线）
     drawHistogram(rawData);
     drawAgeViolinGenderBox(rawData);
-    drawRiskCurve(rawData); 
+    drawRiskCurve(rawData);
 
-    // 初始绘制 BMI vs. HbA1c Scatter + Regression，默认因子为 'hypertension'
+    // 初始绘制：默认选中 “hypertension”
     drawScatterWithRegression(rawData, 'hypertension');
 
-    // 下拉菜单事件：切换二元因子时，重新绘制散点 + 回归
+    // 监听下拉菜单 change 事件，动态更新散点+回归
     d3.select('#factorSelect').on('change', function() {
       const selectedFactor = d3.select(this).property('value');
       drawScatterWithRegression(rawData, selectedFactor);
     });
 
-  }).catch(error => {
-    console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
+  }).catch(err => {
+    console.error('加载数据时出错：', err);
   });
 
   // 初始化轮播（Carousel）
@@ -599,22 +591,21 @@ function drawRiskCurve(data) {
   });
 }
 
-
 /* =========================================================================
-   5. BMI vs. HbA1c 交互式散点 + 回归线
+   4. BMI vs. HbA1c Scatter + Regression
    ========================================================================= */
 function drawScatterWithRegression(data, factor) {
-  // 清空旧图
+  // 清空上一次的 svg/tooltip
   d3.select('#scatterPlot').selectAll('*').remove();
 
-  // SVG 尺寸设置
+  // SVG 容器的大小
   const margin = { top: 20, right: 30, bottom: 50, left: 60 };
   const containerWidth = document.getElementById('scatterPlot').clientWidth;
   const containerHeight = document.getElementById('scatterPlot').clientHeight;
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // 新建 SVG
+  // 创建 SVG
   const svg = d3.select('#scatterPlot')
     .append('svg')
     .attr('width', containerWidth)
@@ -622,23 +613,22 @@ function drawScatterWithRegression(data, factor) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // X 轴：BMI，Y 轴：HbA1c
-  const xExtent = d3.extent(data, d => d.bmi);
-  const yExtent = d3.extent(data, d => d.hbA1c);
-
-  // 在数据范围两端稍微留点空白
+  // X 轴：根据选中的 factor 决定 0/1，并添加抖动
   const xScale = d3.scaleLinear()
-    .domain([xExtent[0] - 1, xExtent[1] + 1])
+    .domain([-0.2, 1.2])   // 二元(0,1) 加一点空白
     .range([0, width]);
 
+  // Y 轴：HbA1c 连续
+  const minY = d3.min(data, d => d.hbA1c) - 0.2;
+  const maxY = d3.max(data, d => d.hbA1c) + 0.2;
   const yScale = d3.scaleLinear()
-    .domain([yExtent[0] - 0.2, yExtent[1] + 0.2])
+    .domain([minY, maxY])
     .range([height, 0]);
 
   // 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale).ticks(8));
+    .call(d3.axisBottom(xScale).tickFormat(d => d === 0 ? '0' : (d === 1 ? '1' : '')));
 
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
@@ -649,7 +639,7 @@ function drawScatterWithRegression(data, factor) {
     .attr('y', height + margin.bottom - 10)
     .attr('text-anchor', 'middle')
     .attr('font-size', '14px')
-    .text('BMI');
+    .text(`${formatFactorName(factor)} (0 or 1)`);
 
   svg.append('text')
     .attr('transform', 'rotate(-90)')
@@ -664,29 +654,32 @@ function drawScatterWithRegression(data, factor) {
     .append('div')
     .attr('class', 'tooltip');
 
-  // 根据 factor 分为两组：factor=0 组和 factor=1 组
-  let groupField;
-  if (factor === 'smoking_history') {
-    // 用 d.smoker（二元）来分组
-    groupField = 'smoker';
-  } else {
-    groupField = factor;
-  }
+  // 按因子值 (0/1) 分为两组
+  const group0 = data.filter(d => {
+    if (factor === 'hypertension') return d.hypertension === 0;
+    if (factor === 'smoker') return d.smoker === 0;
+    if (factor === 'heart_disease') return d.heart_disease === 0;
+    if (factor === 'high_bmi') return d.high_bmi === 0;
+  });
 
-  const group0 = data.filter(d => d[groupField] === 0);
-  const group1 = data.filter(d => d[groupField] === 1);
+  const group1 = data.filter(d => {
+    if (factor === 'hypertension') return d.hypertension === 1;
+    if (factor === 'smoker') return d.smoker === 1;
+    if (factor === 'heart_disease') return d.heart_disease === 1;
+    if (factor === 'high_bmi') return d.high_bmi === 1;
+  });
 
-  // 颜色：组0 用蓝色，组1 用红色
+  // 颜色：组0 蓝，组1 红
   const color0 = '#1f77b4';
   const color1 = '#d62728';
 
-  // 绘制散点：组0
+  // 绘制组0 的散点（带抖动）
   svg.selectAll('.dot0')
     .data(group0)
     .enter()
     .append('circle')
     .attr('class', 'dot0')
-    .attr('cx', d => xScale(d.bmi))
+    .attr('cx', d => xScale(0 + (Math.random() * 0.2 - 0.1))) // ±0.1 抖动
     .attr('cy', d => yScale(d.hbA1c))
     .attr('r', 4)
     .attr('fill', color0)
@@ -694,9 +687,8 @@ function drawScatterWithRegression(data, factor) {
     .on('mouseover', function(event, d) {
       d3.select(this).attr('r', 6);
       tooltip.html(
-        `BMI: ${d.bmi.toFixed(1)}<br>` +
-        `HbA1c: ${d.hbA1c.toFixed(1)}<br>` +
-        `${formatFactorTooltip(factor, d)}`
+        `${formatFactorTooltip(factor, d)}<br>` +
+        `HbA1c: ${d.hbA1c.toFixed(1)}%`
       )
         .style('left', (event.pageX + 12) + 'px')
         .style('top', (event.pageY - 28) + 'px')
@@ -707,13 +699,13 @@ function drawScatterWithRegression(data, factor) {
       tooltip.style('opacity', 0);
     });
 
-  // 绘製散点：組1
+  // 绘制组1 的散点（带抖动）
   svg.selectAll('.dot1')
     .data(group1)
     .enter()
     .append('circle')
     .attr('class', 'dot1')
-    .attr('cx', d => xScale(d.bmi))
+    .attr('cx', d => xScale(1 + (Math.random() * 0.2 - 0.1))) // ±0.1 抖动
     .attr('cy', d => yScale(d.hbA1c))
     .attr('r', 4)
     .attr('fill', color1)
@@ -721,9 +713,8 @@ function drawScatterWithRegression(data, factor) {
     .on('mouseover', function(event, d) {
       d3.select(this).attr('r', 6);
       tooltip.html(
-        `BMI: ${d.bmi.toFixed(1)}<br>` +
-        `HbA1c: ${d.hbA1c.toFixed(1)}<br>` +
-        `${formatFactorTooltip(factor, d)}`
+        `${formatFactorTooltip(factor, d)}<br>` +
+        `HbA1c: ${d.hbA1c.toFixed(1)}%`
       )
         .style('left', (event.pageX + 12) + 'px')
         .style('top', (event.pageY - 28) + 'px')
@@ -766,17 +757,16 @@ function drawScatterWithRegression(data, factor) {
     .attr('font-size', '13px')
     .text(d => d.label);
 
+  // ————————————————
+  // 内部辅助函数
+  // ————————————————
 
-  /************************************************************************************
-   * 内部辅助函数
-   ************************************************************************************/
-
-  // 根据一个样本 d，生成鼠标悬停 tooltip 中的因子信息
+  // 用于 tooltip 展示本行数据的“因子信息”
   function formatFactorTooltip(factorKey, d) {
     switch (factorKey) {
       case 'hypertension':
         return `Hypertension: ${d.hypertension === 1 ? 'Yes' : 'No'}`;
-      case 'smoking_history':
+      case 'smoker':
         return `Smoking: ${d.smoker === 1 ? 'Yes' : 'No'}`;
       case 'heart_disease':
         return `Heart Disease: ${d.heart_disease === 1 ? 'Yes' : 'No'}`;
@@ -787,43 +777,45 @@ function drawScatterWithRegression(data, factor) {
     }
   }
 
-  // 将因子键名转换成人类可读标签
+  // 将因子键名转换成人性化标签
   function formatFactorName(factorKey) {
     switch (factorKey) {
-      case 'hypertension':
-        return 'Hypertension';
-      case 'smoking_history':
-        return 'Smoking';
-      case 'heart_disease':
-        return 'HeartDisease';
-      case 'high_bmi':
-        return 'HighBMI';
-      default:
-        return factorKey;
+      case 'hypertension': return 'Hypertension';
+      case 'smoker': return 'Smoking';
+      case 'heart_disease': return 'HeartDisease';
+      case 'high_bmi': return 'HighBMI';
+      default: return factorKey;
     }
   }
 
-  // 在给定组数据上计算线性回归，并画出直线
+  // 计算线性回归斜率与截距，并画成虚线
   function drawLinearFit(svgG, groupData, xScale, yScale, lineColor) {
-    if (groupData.length < 2) return; // 样本数不足时跳过
-
-    // 计算回归系数：slope 和 intercept
+    if (groupData.length < 2) return;
+    // 线性回归最小二乘法
     const n = groupData.length;
-    const meanX = d3.mean(groupData, d => d.bmi);
+    const meanX = d3.mean(groupData, d => {
+      if (factor === 'hypertension') return d.hypertension;
+      if (factor === 'smoker') return d.smoker;
+      if (factor === 'heart_disease') return d.heart_disease;
+      if (factor === 'high_bmi') return d.high_bmi;
+    });
     const meanY = d3.mean(groupData, d => d.hbA1c);
 
-    let numerator = 0;
-    let denominator = 0;
+    let numerator = 0, denominator = 0;
     groupData.forEach(d => {
-      numerator += (d.bmi - meanX) * (d.hbA1c - meanY);
-      denominator += (d.bmi - meanX) * (d.bmi - meanX);
+      const rawX = (factor === 'hypertension' ? d.hypertension
+                    : factor === 'smoker' ? d.smoker
+                    : factor === 'heart_disease' ? d.heart_disease
+                    : d.high_bmi);
+      numerator += (rawX - meanX) * (d.hbA1c - meanY);
+      denominator += (rawX - meanX) * (rawX - meanX);
     });
     const slope = denominator === 0 ? 0 : numerator / denominator;
     const intercept = meanY - slope * meanX;
 
-    // 在 x 轴最两端生成两个点，用于绘制回归线
-    const xMin = d3.min(groupData, d => d.bmi);
-    const xMax = d3.max(groupData, d => d.bmi);
+    // 回归线上点的 X 范围：0 → 1
+    const xMin = 0;
+    const xMax = 1;
     const yMinPred = slope * xMin + intercept;
     const yMaxPred = slope * xMax + intercept;
 

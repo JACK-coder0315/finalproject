@@ -160,7 +160,7 @@
        ============================== -->
   <section id="ageViolin" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Age & Gender Analysis 说明 -->
+      <!-- 左侧：Age & Gender Analysis 说明 (全英文，详细版) -->
       <div class="summary-text">
         <h2>Age &amp; Gender Analysis</h2>
         <p>
@@ -199,7 +199,7 @@
   </section>
 
   <!-- ==============================
-       4. HbA1c 阈值 vs. 糖尿病比例 —— 滑块 + 折线图
+       4. 风险曲线 —— 左右两栏：Slider + 折线图 & 解释
        ============================== -->
   <section id="risk" class="section-container">
     <div class="two-column">
@@ -243,7 +243,7 @@
       <label for="factorSelect" class="control-label">Select Risk Factor:</label>
       <select id="factorSelect" class="control-select">
         <option value="hypertension">Hypertension</option>
-        <option value="smoking_history">Smoking</option>
+        <option value="smoker">Smoking</option>
         <option value="heart_disease">Heart Disease</option>
         <option value="high_bmi">High BMI (≥25)</option>
       </select>
@@ -252,7 +252,7 @@
     <!-- 散点图 SVG 容器 -->
     <div id="scatterPlot"></div>
     <p class="caption">
-      BMI on the X-axis, HbA1c on the Y-axis. Red points = risk factor = 1, Blue points = risk factor = 0. 虚线为各自组的线性回归拟合线。
+      X-axis = selected risk factor (0 or 1, with jitter), Y-axis = HbA1c (%). Red points = risk factor = 1, Blue points = risk factor = 0. Dotted line = linear regression fit.
     </p>
   </section>
 
@@ -262,26 +262,18 @@
   <section id="conclusion" class="section-container">
     <h2>Conclusions &amp; References</h2>
     <ul>
-      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises
-        significantly; lifestyle interventions should be initiated immediately.</li>
+      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises significantly; lifestyle interventions should be initiated immediately.</li>
       <li>Across different age groups, the average HbA1c slightly increases with age, particularly after middle age.</li>
-      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of
-        developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
-      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay
-        progression from the “prediabetes” stage for some people.</li>
+      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
+      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay progression from the “prediabetes” stage for some people.</li>
     </ul>
     <h3>References</h3>
     <ol>
-      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in
-          Diagnosis and Prognosis of Diabetic Complications</a></li>
-      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the
-          Diagnosis of Diabetes</a></li>
-      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker
-          of Well-Controlled Diabetes?</a></li>
-      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of
-          Hemoglobin A1c in the Management of Diabetes</a></li>
-      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes
-          Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in Diagnosis and Prognosis of Diabetic Complications</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the Diagnosis of Diabetes</a></li>
+      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker of Well-Controlled Diabetes?</a></li>
+      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of Hemoglobin A1c in the Management of Diabetes</a></li>
+      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
     </ol>
   </section>
 

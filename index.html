@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +12,7 @@
   <!-- ====== 自定义样式 ====== -->
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <!-- ==============================
        顶部导航栏（固定）
@@ -32,8 +34,10 @@
   <section id="intro" class="section-container">
     <h1>What is HbA1c and Why Does It Matter?</h1>
     <p>
-      HbA1c (glycated hemoglobin) is formed when glucose binds to hemoglobin in red blood cells. Since red blood cells live about 120 days,
-      HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is used both for diagnosing diabetes and for monitoring long-term glucose control.
+      HbA1c (glycated hemoglobin) is formed when glucose binds to hemoglobin in red blood cells. Since red blood cells
+      live about 120 days,
+      HbA1c reflects the average blood glucose level over the past 2–3 months. Clinically, HbA1c is used both for
+      diagnosing diabetes and for monitoring long-term glucose control.
       <br /><br />
       <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
       <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
@@ -41,12 +45,12 @@
     </p>
     <p>
       In this interactive visualization, we will explore:
-      <ol>
-        <li>Population-level distribution of HbA1c</li>
-        <li>How average HbA1c changes with age</li>
-        <li>The relationship between HbA1c and probability of developing type 2 diabetes</li>
-        <li>Example individual trajectories from normal to prediabetes to diabetes</li>
-      </ol>
+    <ol>
+      <li>Population-level distribution of HbA1c</li>
+      <li>How average HbA1c changes with age</li>
+      <li>The relationship between HbA1c and probability of developing type 2 diabetes</li>
+      <li>Example individual trajectories from normal to prediabetes to diabetes</li>
+    </ol>
     </p>
   </section>
 
@@ -88,9 +92,9 @@
   </section>
 
   <section id="bg-dist" class="section-container">
-  <h2>Blood Glucose Distribution by Age & HbA1c</h2>
-  <div id="violinBoxPlot"></div>
-</section>
+    <h2>Blood Glucose Distribution by Age & HbA1c</h2>
+    <div id="violinBoxPlot"></div>
+  </section>
 
   <!-- ==============================
        5. 个体案例模拟（如果有纵向数据，可放到这里；否则留空或删掉）
@@ -108,18 +112,27 @@
   <section id="conclusion" class="section-container">
     <h2>Conclusions &amp; References</h2>
     <ul>
-      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises significantly; lifestyle interventions should be initiated immediately.</li>
-      <li>Across different age groups, the average HbA1c increases with age, with a particularly faster rise after middle age.</li>
-      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
-      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay progression from the “prediabetes” stage for some people.</li>
+      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises
+        significantly; lifestyle interventions should be initiated immediately.</li>
+      <li>Across different age groups, the average HbA1c increases with age, with a particularly faster rise after
+        middle age.</li>
+      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of
+        developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
+      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay
+        progression from the “prediabetes” stage for some people.</li>
     </ul>
     <h3>References</h3>
     <ol>
-      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in Diagnosis and Prognosis of Diabetic Complications</a></li>
-      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the Diagnosis of Diabetes</a></li>
-      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker of Well-Controlled Diabetes?</a></li>
-      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of Hemoglobin A1c in the Management of Diabetes</a></li>
-      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in
+          Diagnosis and Prognosis of Diabetic Complications</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the
+          Diagnosis of Diabetes</a></li>
+      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker
+          of Well-Controlled Diabetes?</a></li>
+      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of
+          Hemoglobin A1c in the Management of Diabetes</a></li>
+      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes
+          Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
     </ol>
   </section>
 
@@ -129,4 +142,5 @@
   <!-- main.js 中包含了 drawHistogram、drawAgeTrend、drawRiskCurve 等函数 -->
   <script src="main.js"></script>
 </body>
+
 </html>

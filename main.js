@@ -180,7 +180,6 @@ function drawHistogram(data) {
   }
 }
 
-
 /* =========================================================================
    2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
    ========================================================================= */
@@ -435,29 +434,62 @@ function drawAgeViolinGenderBox(data) {
 }
 
 /* =========================================================================
-   3. HbA1c vs. Diabetes Risk Curve —— 动态散点 + 描边曲线 + 网格线淡入 + Tooltip
+   3. HbA1c ROC Curve & Calibration —— 绘制 ROC 曲线并计算 ECE
    ========================================================================= */
 function drawRiskCurve(data) {
-  // 将 HbA1c 四舍五入到 0.1
+  // 1) 归一化 HbA1c 作为预测分数 score ∈ [0,1]
+  const minHb = d3.min(data, d => d.hbA1c);
+  const maxHb = d3.max(data, d => d.hbA1c);
   data.forEach(d => {
-    d.hbA1cRound = Math.round(d.hbA1c * 10) / 10;
+    d.score = (d.hbA1c - minHb) / (maxHb - minHb);
   });
 
-  // 按四舍五入后的 HbA1c 分组，计算 diabetes == 1 的比例
-  const riskGroups = d3.rollups(
-    data,
-    v => v.filter(d => d.diabetes === 1).length / v.length,
-    d => d.hbA1cRound
-  );
-  const riskData = riskGroups.map(([hb, prob]) => ({
-    hbA1c: hb,
-    risk_prob: prob
-  })).sort((a, b) => a.hbA1c - b.hbA1c);
+  // 2) 计算 ROC 点 (FPR, TPR)
+  const scores = Array.from(new Set(data.map(d => d.score))).sort(d3.ascending);
 
+  function computeRates(thr) {
+    let TP = 0, FP = 0, TN = 0, FN = 0;
+    data.forEach(d => {
+      const pred = d.score >= thr ? 1 : 0;
+      if (pred === 1 && d.diabetes === 1) TP++;
+      if (pred === 1 && d.diabetes === 0) FP++;
+      if (pred === 0 && d.diabetes === 0) TN++;
+      if (pred === 0 && d.diabetes === 1) FN++;
+    });
+    const TPR = TP / (TP + FN);
+    const FPR = FP / (FP + TN);
+    return { TPR, FPR };
+  }
+
+  const rocPoints = scores.map(thr => {
+    const { TPR, FPR } = computeRates(thr);
+    return { thr, TPR, FPR };
+  });
+  rocPoints.unshift({ thr: Infinity, TPR: 0, FPR: 0 });
+  rocPoints.push({ thr: -Infinity, TPR: 1, FPR: 1 });
+
+  // 3) 计算 ECE (10 等分区间)
+  const M = 10;
+  const sortedByScore = data.slice().sort((a, b) => d3.ascending(a.score, b.score));
+  const binSize = Math.floor(sortedByScore.length / M);
+  let ece = 0;
+  for (let i = 0; i < M; i++) {
+    const startIdx = i * binSize;
+    const endIdx = (i === M - 1) ? sortedByScore.length : (i + 1) * binSize;
+    const binSlice = sortedByScore.slice(startIdx, endIdx);
+    if (binSlice.length === 0) continue;
+    const avgPredProb = d3.mean(binSlice, d => d.score);
+    const obsProb = binSlice.filter(d => d.diabetes === 1).length / binSlice.length;
+    const weight = binSlice.length / sortedByScore.length;
+    ece += Math.abs(avgPredProb - obsProb) * weight;
+  }
+
+  // 4) 绘制 ROC 曲线和显示 AUC、ECE
   const margin = { top: 20, right: 60, bottom: 40, left: 50 };
-  const width = 800 - margin.left - margin.right;
-  const height = 350 - margin.top - margin.bottom;
+  const width = 600 - margin.left - margin.right;
+  const height = 500 - margin.top - margin.bottom;
 
+  d3.select('#riskCurve').selectAll('*').remove();
   const svg = d3.select('#riskCurve')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -465,111 +497,81 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴：HbA1c 值
-  const x = d3.scaleLinear()
-    .domain(d3.extent(riskData, d => d.hbA1c))
-    .range([0, width]);
+  const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
+  const y = d3.scaleLinear().domain([0, 1]).range([height, 0]);
 
-  // y 轴：概率 0–1
-  const y = d3.scaleLinear()
-    .domain([0, 1])
-    .range([height, 0]);
-
-  // 背景网格线（先隐藏）
-  const yGrid = d3.axisLeft(y)
-    .tickSize(-width)
-    .tickFormat('')
-    .ticks(5);
-
-  const gridGroup = svg.append('g')
-    .attr('class', 'grid-line')
-    .attr('opacity', 0)
-    .call(yGrid);
-
-  // 绘制坐标轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x));
-
+    .call(d3.axisBottom(x).tickFormat(d3.format('.1f')));
   svg.append('g')
-    .call(d3.axisLeft(y).ticks(5));
+    .call(d3.axisLeft(y).tickFormat(d3.format('.1f')));
 
-  // 轴标签
+  const rocLine = d3.line()
+    .x(d => x(d.FPR))
+    .y(d => y(d.TPR))
+    .curve(d3.curveMonotoneX);
+
+  svg.append('path')
+    .datum(rocPoints)
+    .attr('fill', 'none')
+    .attr('stroke', '#1f77b4')
+    .attr('stroke-width', 2)
+    .attr('d', rocLine);
+
+  svg.selectAll('.roc-point')
+    .data(rocPoints)
+    .enter()
+    .append('circle')
+    .attr('class', 'roc-point')
+    .attr('cx', d => x(d.FPR))
+    .attr('cy', d => y(d.TPR))
+    .attr('r', 3)
+    .attr('fill', '#d62728');
+
+  svg.append('line')
+    .attr('x1', x(0)).attr('y1', y(0))
+    .attr('x2', x(1)).attr('y2', y(1))
+    .attr('stroke', '#aaa')
+    .attr('stroke-dasharray', '4 4');
+
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 5)
     .attr('text-anchor', 'middle')
-    .text('HbA1c (%)');
+    .text('False Positive Rate (FPR)');
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -height / 2)
     .attr('y', -margin.left + 15)
     .attr('text-anchor', 'middle')
-    .text('Risk Probability');
+    .text('True Positive Rate (TPR)');
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', -10)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '18px')
+    .attr('font-weight', '600')
+    .text('ROC Curve: HbA1c as Predictor');
 
-  // Tooltip
-  const tooltip = d3.select('body')
-    .append('div')
-    .attr('class', 'tooltip');
-
-  // 绘制散点，初始半径 r = 0，逐个“长出”
-  const circles = svg.selectAll('circle')
-    .data(riskData)
-    .enter()
-    .append('circle')
-    .attr('cx', d => x(d.hbA1c))
-    .attr('cy', d => y(d.risk_prob))
-    .attr('r', 0)
-    .attr('fill', '#d62728');
-
-  circles.transition()
-    .delay((d, i) => i * 30)
-    .duration(500)
-    .attr('r', 4);
-
-  // 绘制连线（先隐藏，通过描边动画再显现）
-  const line = d3.line()
-    .x(d => x(d.hbA1c))
-    .y(d => y(d.risk_prob))
-    .curve(d3.curveMonotoneX);
-
-  const riskPath = svg.append('path')
-    .datum(riskData)
-    .attr('fill', 'none')
-    .attr('stroke', '#1f77b4')
-    .attr('stroke-width', 2)
-    .attr('d', line)
-    .attr('stroke-dasharray', function () {
-      return this.getTotalLength() + ' ' + this.getTotalLength();
-    })
-    .attr('stroke-dashoffset', function () {
-      return this.getTotalLength();
-    });
-
-  // 连线描边动画
-  riskPath.transition()
-    .delay(riskData.length * 30 + 200)
-    .duration(1200)
-    .attr('stroke-dashoffset', 0);
-
-  // 网格线淡入
-  gridGroup.transition()
-    .delay(riskData.length * 30 + 800)
-    .duration(800)
-    .attr('opacity', 1);
-
-  // 悬停交互：散点放大 + Tooltip
-  circles
-    .on('mouseover', function (event, d) {
-      d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
-      tooltip
-        .html(`HbA1c: ${d.hbA1c.toFixed(1)}%<br>Risk: ${(d.risk_prob * 100).toFixed(1)}%`)
-        .style('left', (event.pageX + 10) + 'px')
-        .style('top', (event.pageY - 30) + 'px')
-        .style('opacity', 1);
-    })
-    .on('mouseout', function () {
-      d3.select(this).attr('r', 4).attr('fill', '#d62728');
-      tooltip.style('opacity', 0);
-    });
+  // 计算 AUC
+  let auc = 0;
+  for (let i = 1; i < rocPoints.length; i++) {
+    const x0 = rocPoints[i - 1].FPR, y0 = rocPoints[i - 1].TPR;
+    const x1 = rocPoints[i].FPR, y1 = rocPoints[i].TPR;
+    auc += (x1 - x0) * (y0 + y1) / 2;
+  }
+  svg.append('text')
+    .attr('x', width - 10)
+    .attr('y', 20)
+    .attr('text-anchor', 'end')
+    .attr('font-size', '14px')
+    .attr('font-weight', '500')
+    .text(`AUC = ${auc.toFixed(3)}`);
+  svg.append('text')
+    .attr('x', width - 10)
+    .attr('y', 40)
+    .attr('text-anchor', 'end')
+    .attr('font-size', '14px')
+    .attr('font-weight', '500')
+    .text(`ECE = ${ece.toFixed(3)}`);
 }

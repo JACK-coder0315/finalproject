@@ -109,14 +109,14 @@ function drawHistogram(data) {
     .data(currentBins)
     .enter()
     .append('rect')
-      .attr('x', d => x(d.x0) + 1)
-      .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
-      .attr('y', height)
-      .attr('height', 0)
-      .attr('fill', '#69b3a2');
+    .attr('x', d => x(d.x0) + 1)
+    .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+    .attr('y', height)
+    .attr('height', 0)
+    .attr('fill', '#69b3a2');
 
   rects
-    .on('mouseover', function(event, d) {
+    .on('mouseover', function (event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
       tooltip
         .html(`Range: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>Count: ${d.length}`)
@@ -124,7 +124,7 @@ function drawHistogram(data) {
         .style('top', (event.pageY - 30) + 'px')
         .style('opacity', 1);
     })
-    .on('mouseout', function() {
+    .on('mouseout', function () {
       d3.select(this).attr('fill', '#69b3a2');
       tooltip.style('opacity', 0);
     });
@@ -154,9 +154,9 @@ function drawHistogram(data) {
     svg.selectAll('rect')
       .data(nextBins)
       .transition()
-        .duration(800)
-        .attr('y', d => y(d.length))
-        .attr('height', d => height - y(d.length));
+      .duration(800)
+      .attr('y', d => y(d.length))
+      .attr('height', d => height - y(d.length));
   }
 }
 
@@ -228,8 +228,8 @@ function drawAgeTrend(data) {
     .attr('stroke-dasharray', totalLength + ' ' + totalLength)
     .attr('stroke-dashoffset', totalLength)
     .transition()
-      .duration(1500)
-      .attr('stroke-dashoffset', 0);
+    .duration(1500)
+    .attr('stroke-dashoffset', 0);
 
   const areaPath = svg.append('path')
     .datum(ageTrend)
@@ -299,7 +299,7 @@ function drawAgeTrend(data) {
     if (autoTimer) autoTimer.stop();
   });
 
-  ageSlider.on('input', function() {
+  ageSlider.on('input', function () {
     updateAge(this.value);
   });
 
@@ -383,15 +383,15 @@ function drawRiskCurve(data) {
     .data(riskData)
     .enter()
     .append('circle')
-      .attr('cx', d => x(d.hbA1c))
-      .attr('cy', d => y(d.risk_prob))
-      .attr('r', 0)
-      .attr('fill', '#d62728');
+    .attr('cx', d => x(d.hbA1c))
+    .attr('cy', d => y(d.risk_prob))
+    .attr('r', 0)
+    .attr('fill', '#d62728');
 
   circles.transition()
-      .delay((d, i) => i * 30)
-      .duration(500)
-      .attr('r', 4);
+    .delay((d, i) => i * 30)
+    .duration(500)
+    .attr('r', 4);
 
   const line = d3.line()
     .x(d => x(d.hbA1c))
@@ -404,10 +404,10 @@ function drawRiskCurve(data) {
     .attr('stroke', '#1f77b4')
     .attr('stroke-width', 2)
     .attr('d', line)
-    .attr('stroke-dasharray', function() {
+    .attr('stroke-dasharray', function () {
       return this.getTotalLength() + ' ' + this.getTotalLength();
     })
-    .attr('stroke-dashoffset', function() {
+    .attr('stroke-dashoffset', function () {
       return this.getTotalLength();
     });
 
@@ -422,7 +422,7 @@ function drawRiskCurve(data) {
     .attr('opacity', 1);
 
   circles
-    .on('mouseover', function(event, d) {
+    .on('mouseover', function (event, d) {
       d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
       tooltip
         .html(`HbA1c: ${d.hbA1c.toFixed(1)}%<br>Risk: ${(d.risk_prob * 100).toFixed(1)}%`)
@@ -430,7 +430,7 @@ function drawRiskCurve(data) {
         .style('top', (event.pageY - 30) + 'px')
         .style('opacity', 1);
     })
-    .on('mouseout', function() {
+    .on('mouseout', function () {
       d3.select(this).attr('r', 4).attr('fill', '#d62728');
       tooltip.style('opacity', 0);
     });
@@ -480,8 +480,8 @@ function drawViolinBoxPlot(data) {
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x0))
     .selectAll('text')
-      .attr('transform', 'rotate(0)')
-      .style('text-anchor', 'middle');
+    .attr('transform', 'rotate(0)')
+    .style('text-anchor', 'middle');
 
   svg.append('g')
     .call(d3.axisLeft(y));
@@ -500,12 +500,12 @@ function drawViolinBoxPlot(data) {
     .text('Blood Glucose Level (mg/dL)');
 
   function kernelDensityEstimator(kernel, X) {
-    return function(V) {
+    return function (V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
     };
   }
   function kernelEpanechnikov(k) {
-    return function(v) {
+    return function (v) {
       v /= k;
       return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
     };
@@ -556,15 +556,15 @@ function drawViolinBoxPlot(data) {
     .data(allGroups)
     .enter()
     .append('g')
-      .attr('transform', d => `
+    .attr('transform', d => `
         translate(
           ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2}, 
           0
         )
       `)
-      .attr('opacity', 0);
+    .attr('opacity', 0);
 
-  groupContainer.each(function(d, i) {
+  groupContainer.each(function (d, i) {
     const grp = d3.select(this);
     if (!d.density.length) return;
 
@@ -593,7 +593,7 @@ function drawViolinBoxPlot(data) {
       .attr('opacity', 0.6);
   });
 
-  groupContainer.each(function(d, i) {
+  groupContainer.each(function (d, i) {
     const grp = d3.select(this);
     if (!d.box) return;
 
@@ -690,7 +690,7 @@ function drawViolinByGender(rawData) {
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom)
     .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+    .attr('transform', `translate(${margin.left},${margin.top})`);
 
   // 4) 设置 y 轴：血糖范围
   const bloodMin = d3.min(rawData, d => d.blood_glucose);
@@ -729,12 +729,12 @@ function drawViolinByGender(rawData) {
 
   // 8) 准备 KDE 函数
   function kernelDensityEstimator(kernel, X) {
-    return function(V) {
+    return function (V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
     };
   }
   function kernelEpanechnikov(k) {
-    return function(v) {
+    return function (v) {
       v /= k;
       return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
     };
@@ -773,15 +773,15 @@ function drawViolinByGender(rawData) {
     });
   });
 
-  // 11) 计算最大密度
-  const maxDensity = d3.max(allGroups, d => 
+  // 11) 计算所有组的“最大密度值”
+  const maxDensity = d3.max(allGroups, d =>
     d.density.length ? d3.max(d.density, pt => pt[1]) : 0
   );
 
-  // 12) 小提琴水平缩放
+  // 12) 小提琴水平比例尺：让小提琴最大可展开到 x.bandwidth() * 0.8
   const xViolin = d3.scaleLinear()
     .domain([0, maxDensity])
-    .range([0, x.bandwidth() / 2]);
+    .range([0, x.bandwidth() * 0.8]);
 
   // 13) 定义填充颜色：Female=蓝, Male=黄, Other=深紫
   const fillColors = {
@@ -800,16 +800,16 @@ function drawViolinByGender(rawData) {
     .data(allGroups)
     .enter()
     .append('g')
-      .attr('transform', d => `
+    .attr('transform', d => `
         translate(
           ${x(d.group) + x.bandwidth() / 2}, 
           0
         )
       `)
-      .attr('opacity', 0);
+    .attr('opacity', 0);
 
   // 15) 小提琴轮廓 + 填充
-  groupContainers.each(function(d, i) {
+  groupContainers.each(function (d, i) {
     const g = d3.select(this);
     if (!d.density.length) return;
 
@@ -844,12 +844,12 @@ function drawViolinByGender(rawData) {
   });
 
   // 16) 在小提琴内部绘制“有填充”的箱线
-  groupContainers.each(function(d, i) {
+  groupContainers.each(function (d, i) {
     const g = d3.select(this);
     if (!d.box) return;
 
     const { q1, median, q3, lowerWhisker, upperWhisker } = d.box;
-    const boxW = x.bandwidth() * 0.5;
+    const boxW = x.bandwidth() * 0.3;
     const fc = fillColors[d.group] || '#999999';
     const sc = strokeColors[d.group] || '#333333';
 
@@ -935,7 +935,7 @@ function drawViolinByStatus(rawData) {
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom)
     .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+    .attr('transform', `translate(${margin.left},${margin.top})`);
 
   // 4) y 轴范围
   const bloodMin = d3.min(rawData, d => d.blood_glucose);
@@ -974,12 +974,12 @@ function drawViolinByStatus(rawData) {
 
   // 8) KDE 函数
   function kernelDensityEstimator(kernel, X) {
-    return function(V) {
+    return function (V) {
       return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
     };
   }
   function kernelEpanechnikov(k) {
-    return function(v) {
+    return function (v) {
       v /= k;
       return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
     };
@@ -1019,7 +1019,7 @@ function drawViolinByStatus(rawData) {
   });
 
   // 11) 最大密度
-  const maxDensity = d3.max(allGroups, d => 
+  const maxDensity = d3.max(allGroups, d =>
     d.density.length ? d3.max(d.density, pt => pt[1]) : 0
   );
 
@@ -1046,16 +1046,16 @@ function drawViolinByStatus(rawData) {
     .data(allGroups)
     .enter()
     .append('g')
-      .attr('transform', d => `
+    .attr('transform', d => `
         translate(
           ${x(d.group) + x.bandwidth() / 2}, 
           0
         )
       `)
-      .attr('opacity', 0);
+    .attr('opacity', 0);
 
   // 15) 小提琴轮廓 + 填充
-  groupContainers.each(function(d, i) {
+  groupContainers.each(function (d, i) {
     const g = d3.select(this);
     if (!d.density.length) return;
 
@@ -1088,7 +1088,7 @@ function drawViolinByStatus(rawData) {
   });
 
   // 16) 箱线图同色填充
-  groupContainers.each(function(d, i) {
+  groupContainers.each(function (d, i) {
     const g = d3.select(this);
     if (!d.box) return;
 

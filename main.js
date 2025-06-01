@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else d.status = 'diabetes';
     });
 
-    // 2) 为每条记录添加 ageDecade（0–9,10–19,...）和 hba1cStatus（与 status 同值）
+    // 2) 为每条记录添加 ageDecade（10 岁段）和 hba1cStatus（与 status 同值）
     rawData.forEach(d => {
       const decade = Math.floor(d.age / 10) * 10;
       d.ageDecade = `${decade}–${decade + 9}`;
@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
    说明：
    - 初始每个柱子从底部“长出”；
    - 自动循环展示：all → normal → prediabetes → diabetes → all。
+   修正点：先获取到柱子的 Selection，再给它绑定 .on()，最后再做 transition()。
    ========================================================================= */
 function drawHistogram(data) {
   // 画布尺寸及边距
@@ -92,13 +93,13 @@ function drawHistogram(data) {
   // 初始用 binsAll 为数据
   let currentBins = binsAll;
 
-  // y 轴（根据当前 binsAll 的最大值）
+  // y 轴（根据 binsAll 的最大值）
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
   // 绘制 x 轴
-  const xAxis = svg.append('g')
+  svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
@@ -111,8 +112,8 @@ function drawHistogram(data) {
     .append('div')
     .attr('class', 'tooltip');
 
-  // 创建初始 rect（高度为 0，从底部开始）
-  const bars = svg.selectAll('rect')
+  // 创建初始 rect（它们还没有动画）
+  const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
     .append('rect')
@@ -120,15 +121,11 @@ function drawHistogram(data) {
       .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
       .attr('y', height)      // 起始在底部
       .attr('height', 0)
-      .attr('fill', '#69b3a2')
-    // 初始动画：柱子“从底部长出来”
-    .transition()
-      .duration(1200)
-      .attr('y', d => y(d.length))
-      .attr('height', d => height - y(d.length));
+      .attr('fill', '#69b3a2');
 
-  // 悬停交互
-  bars.on('mouseover', function(event, d) {
+  // 在柱子上绑定鼠标事件（注意：必须在 transition 之外）
+  rects
+    .on('mouseover', function(event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
       tooltip
         .html(`Range: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>Count: ${d.length}`)
@@ -140,6 +137,12 @@ function drawHistogram(data) {
       d3.select(this).attr('fill', '#69b3a2');
       tooltip.style('opacity', 0);
     });
+
+  // 初始动画：柱子“从底部长出来”
+  rects.transition()
+    .duration(1200)
+    .attr('y', d => y(d.length))
+    .attr('height', d => height - y(d.length));
 
   // 循环类别顺序
   const categories = [
@@ -153,8 +156,7 @@ function drawHistogram(data) {
   // 定时器，每 2.5 秒切换一次
   d3.interval(() => {
     idx = (idx + 1) % categories.length;
-    const next = categories[idx];
-    updateHistogram(next.bins);
+    updateHistogram(categories[idx].bins);
   }, 2500);
 
   // 更新函数：过渡更新 y 轴和柱子高度
@@ -420,15 +422,16 @@ function drawRiskCurve(data) {
     .attr('class', 'tooltip');
 
   // 绘制散点，先让 r = 0，再逐一“长出”
-  svg.selectAll('circle')
+  const circles = svg.selectAll('circle')
     .data(riskData)
     .enter()
     .append('circle')
       .attr('cx', d => x(d.hbA1c))
       .attr('cy', d => y(d.risk_prob))
       .attr('r', 0)
-      .attr('fill', '#d62728')
-    .transition()
+      .attr('fill', '#d62728');
+
+  circles.transition()
       .delay((d, i) => i * 30) // 逐个延迟
       .duration(500)
       .attr('r', 4);
@@ -465,7 +468,7 @@ function drawRiskCurve(data) {
     .attr('opacity', 1);
 
   // 悬停交互：散点放大 + Tooltip
-  svg.selectAll('circle')
+  circles
     .on('mouseover', function(event, d) {
       d3.select(this).attr('r', 6).attr('fill', '#ff7f0e');
       tooltip
@@ -620,7 +623,7 @@ function drawViolinBoxPlot(data) {
       // 将每个子组沿 X 轴移动到对应位置
       .attr('transform', d => `
         translate(
-          ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2},
+          ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2}, 
           0
         )
       `)
@@ -714,10 +717,11 @@ function drawViolinBoxPlot(data) {
     .duration(800)
     .attr('opacity', 1);
 
-  // 图例：在右侧绘制三个色块，说明小提琴与箱线
+  // 图例：在右侧绘制两个色块，说明小提琴与箱线
   const legend = svg.append('g')
     .attr('transform', `translate(${width + 20}, 20)`);
 
+  // 小提琴
   legend.append('rect')
     .attr('x', 0).attr('y', 0)
     .attr('width', 12).attr('height', 12)
@@ -729,6 +733,7 @@ function drawViolinBoxPlot(data) {
     .attr('font-size', '12px')
     .attr('alignment-baseline', 'middle');
 
+  // 箱线
   legend.append('rect')
     .attr('x', 0).attr('y', 20)
     .attr('width', 12).attr('height', 12)

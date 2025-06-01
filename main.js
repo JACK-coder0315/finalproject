@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 执行各个可视化函数
     drawHistogram(rawData);
     drawAgeViolinGenderBox(rawData);
-    drawRiskCurve(rawData);
+    drawRiskCurve(rawData); // ← 这里绘制滑块 + 折线图 & 活动圆点
   }).catch(error => {
     console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
   });
@@ -434,144 +434,148 @@ function drawAgeViolinGenderBox(data) {
 }
 
 /* =========================================================================
-   3. HbA1c ROC Curve & Calibration —— 绘制 ROC 曲线并计算 ECE
+   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
    ========================================================================= */
 function drawRiskCurve(data) {
-  // 1) 归一化 HbA1c 作为预测分数 score ∈ [0,1]
-  const minHb = d3.min(data, d => d.hbA1c);
-  const maxHb = d3.max(data, d => d.hbA1c);
-  data.forEach(d => {
-    d.score = (d.hbA1c - minHb) / (maxHb - minHb);
+  // 先获取数据中 HbA1c 的最小、最大值，用于滑块上下限
+  const allHbValues = data.map(d => d.hbA1c);
+  const minHb = d3.min(allHbValues);
+  const maxHb = d3.max(allHbValues);
+
+  // 设置滑块属性
+  const hbSlider = d3.select('#hbSlider')
+    .attr('min', minHb.toFixed(1))
+    .attr('max', maxHb.toFixed(1))
+    .attr('value', minHb.toFixed(1));
+
+  d3.select('#thresholdValue').text(minHb.toFixed(1));
+
+  // 生成一系列阈值（0.1 步长）
+  const thresholds = d3.range(minHb, maxHb + 0.0001, 0.1).map(d => +d.toFixed(1));
+
+  // 计算每个阈值下的“糖尿病比例”
+  const proportionData = thresholds.map(thr => {
+    const subset = data.filter(d => d.hbA1c >= thr);
+    if (subset.length === 0) {
+      return { threshold: thr, prop: 0 };
+    }
+    const countDi = subset.filter(d => d.diabetes === 1).length;
+    return { threshold: thr, prop: countDi / subset.length };
   });
 
-  // 2) 计算 ROC 点 (FPR, TPR)
-  const scores = Array.from(new Set(data.map(d => d.score))).sort(d3.ascending);
+  // 准备 SVG 尺寸
+  const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+  const svgWidth = 500;
+  const svgHeight = 350;
+  const chartWidth = svgWidth - margin.left - margin.right;
+  const chartHeight = svgHeight - margin.top - margin.bottom;
 
-  function computeRates(thr) {
-    let TP = 0, FP = 0, TN = 0, FN = 0;
-    data.forEach(d => {
-      const pred = d.score >= thr ? 1 : 0;
-      if (pred === 1 && d.diabetes === 1) TP++;
-      if (pred === 1 && d.diabetes === 0) FP++;
-      if (pred === 0 && d.diabetes === 0) TN++;
-      if (pred === 0 && d.diabetes === 1) FN++;
-    });
-    const TPR = TP / (TP + FN);
-    const FPR = FP / (FP + TN);
-    return { TPR, FPR };
-  }
+  // 清空容器
+  d3.select('#riskBar').selectAll('*').remove();
 
-  const rocPoints = scores.map(thr => {
-    const { TPR, FPR } = computeRates(thr);
-    return { thr, TPR, FPR };
-  });
-  rocPoints.unshift({ thr: Infinity, TPR: 0, FPR: 0 });
-  rocPoints.push({ thr: -Infinity, TPR: 1, FPR: 1 });
-
-  // 3) 计算 ECE (10 等分区间)
-  const M = 10;
-  const sortedByScore = data.slice().sort((a, b) => d3.ascending(a.score, b.score));
-  const binSize = Math.floor(sortedByScore.length / M);
-  let ece = 0;
-  for (let i = 0; i < M; i++) {
-    const startIdx = i * binSize;
-    const endIdx = (i === M - 1) ? sortedByScore.length : (i + 1) * binSize;
-    const binSlice = sortedByScore.slice(startIdx, endIdx);
-    if (binSlice.length === 0) continue;
-    const avgPredProb = d3.mean(binSlice, d => d.score);
-    const obsProb = binSlice.filter(d => d.diabetes === 1).length / binSlice.length;
-    const weight = binSlice.length / sortedByScore.length;
-    ece += Math.abs(avgPredProb - obsProb) * weight;
-  }
-
-  // 4) 绘制 ROC 曲线和显示 AUC、ECE
-  const margin = { top: 20, right: 60, bottom: 40, left: 50 };
-  const width = 600 - margin.left - margin.right;
-  const height = 500 - margin.top - margin.bottom;
-
-  d3.select('#riskCurve').selectAll('*').remove();
-  const svg = d3.select('#riskCurve')
+  const svg = d3.select('#riskBar')
     .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
+    .attr('width', svgWidth)
+    .attr('height', svgHeight)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
-  const y = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+  // x 轴比例尺：阈值 → 像素
+  const xScale = d3.scaleLinear()
+    .domain([minHb, maxHb])
+    .range([0, chartWidth]);
 
-  svg.append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x).tickFormat(d3.format('.1f')));
-  svg.append('g')
-    .call(d3.axisLeft(y).tickFormat(d3.format('.1f')));
+  // y 轴比例尺：比例 0–1 → 像素
+  const yScale = d3.scaleLinear()
+    .domain([0, 1])
+    .range([chartHeight, 0]);
 
-  const rocLine = d3.line()
-    .x(d => x(d.FPR))
-    .y(d => y(d.TPR))
+  // 绘制 x 轴
+  svg.append('g')
+    .attr('transform', `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(xScale).ticks(6));
+
+  // 绘制 y 轴
+  svg.append('g')
+    .call(d3.axisLeft(yScale).tickFormat(d3.format('.0%')).ticks(5));
+
+  // x 轴标签
+  svg.append('text')
+    .attr('x', chartWidth / 2)
+    .attr('y', chartHeight + margin.bottom - 5)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .text('HbA1c Threshold');
+
+  // y 轴标签
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -chartHeight / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .text('Proportion of Diabetes');
+
+  // 绘制折线
+  const line = d3.line()
+    .x(d => xScale(d.threshold))
+    .y(d => yScale(d.prop))
     .curve(d3.curveMonotoneX);
 
   svg.append('path')
-    .datum(rocPoints)
+    .datum(proportionData)
     .attr('fill', 'none')
-    .attr('stroke', '#1f77b4')
+    .attr('stroke', '#d62728')
     .attr('stroke-width', 2)
-    .attr('d', rocLine);
+    .attr('d', line);
 
-  svg.selectAll('.roc-point')
-    .data(rocPoints)
-    .enter()
-    .append('circle')
-    .attr('class', 'roc-point')
-    .attr('cx', d => x(d.FPR))
-    .attr('cy', d => y(d.TPR))
-    .attr('r', 3)
-    .attr('fill', '#d62728');
+  // 绘制一个初始的“活动圆点”在最小阈值处
+  const activePoint = svg.append('circle')
+    .attr('cx', xScale(minHb))
+    .attr('cy', yScale(proportionData[0].prop))
+    .attr('r', 6)
+    .attr('fill', '#ff7f0e')
+    .attr('stroke', '#cc6600')
+    .attr('stroke-width', 1.5);
 
-  svg.append('line')
-    .attr('x1', x(0)).attr('y1', y(0))
-    .attr('x2', x(1)).attr('y2', y(1))
-    .attr('stroke', '#aaa')
-    .attr('stroke-dasharray', '4 4');
-
-  svg.append('text')
-    .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 5)
+  // 在圆点旁边显示百分比文本
+  const percentText = svg.append('text')
+    .attr('x', xScale(minHb))
+    .attr('y', yScale(proportionData[0].prop) - 10)
     .attr('text-anchor', 'middle')
-    .text('False Positive Rate (FPR)');
-  svg.append('text')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
-    .attr('text-anchor', 'middle')
-    .text('True Positive Rate (TPR)');
-  svg.append('text')
-    .attr('x', width / 2)
-    .attr('y', -10)
-    .attr('text-anchor', 'middle')
-    .attr('font-size', '18px')
-    .attr('font-weight', '600')
-    .text('ROC Curve: HbA1c as Predictor');
+    .attr('font-size', '14px')
+    .attr('fill', '#333')
+    .text((proportionData[0].prop * 100).toFixed(1) + '%');
 
-  // 计算 AUC
-  let auc = 0;
-  for (let i = 1; i < rocPoints.length; i++) {
-    const x0 = rocPoints[i - 1].FPR, y0 = rocPoints[i - 1].TPR;
-    const x1 = rocPoints[i].FPR, y1 = rocPoints[i].TPR;
-    auc += (x1 - x0) * (y0 + y1) / 2;
+  // 定义更新函数：当滑块变化时，移动圆点并更新文本
+  function updateActivePoint(thr) {
+    // 四舍五入到 1 位小数
+    const t = +thr.toFixed(1);
+    // 找到对应条目的 index
+    const idx = proportionData.findIndex(d => d.threshold === t);
+    if (idx < 0) return;
+
+    const yValue = proportionData[idx].prop;
+    const xPos = xScale(t);
+    const yPos = yScale(yValue);
+
+    activePoint.transition().duration(200)
+      .attr('cx', xPos)
+      .attr('cy', yPos);
+
+    percentText.transition().duration(200)
+      .attr('x', xPos)
+      .attr('y', yPos - 10)
+      .text((yValue * 100).toFixed(1) + '%');
   }
-  svg.append('text')
-    .attr('x', width - 10)
-    .attr('y', 20)
-    .attr('text-anchor', 'end')
-    .attr('font-size', '14px')
-    .attr('font-weight', '500')
-    .text(`AUC = ${auc.toFixed(3)}`);
-  svg.append('text')
-    .attr('x', width - 10)
-    .attr('y', 40)
-    .attr('text-anchor', 'end')
-    .attr('font-size', '14px')
-    .attr('font-weight', '500')
-    .text(`ECE = ${ece.toFixed(3)}`);
+
+  // 初始绘制
+  updateActivePoint(minHb);
+
+  // 监听滑块变化
+  hbSlider.on('input', function () {
+    const curVal = +this.value;
+    d3.select('#thresholdValue').text(curVal.toFixed(1));
+    updateActivePoint(curVal);
+  });
 }

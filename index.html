@@ -207,12 +207,24 @@
   </section>
 
   <!-- ==============================
-       4. HbA1c ROC Curve & Calibration (替换原 Risk Curve)
+       4. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
        ============================== -->
   <section id="risk" class="section-container">
-    <h2>HbA1c ROC Curve &amp; Calibration</h2>
-    <div id="riskCurve"></div>
-    <p class="caption">Figure 3. ROC curve of HbA1c predicting diabetes and Expected Calibration Error (ECE).</p>
+    <h2>HbA1c Threshold vs. Diabetes Proportion</h2>
+
+    <!-- 滑块容器 -->
+    <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
+      <label for="hbSlider">HbA1c Threshold: </label>
+      <input type="range" id="hbSlider" step="0.1" />
+      <span id="thresholdValue">0.0</span>
+    </div>
+
+    <!-- 动态折线图的 SVG 容器 -->
+    <div id="riskBar"></div>
+
+    <p class="caption">
+      Figure 3. 当 HbA1c ≥ 阈值 T 时，该人群中糖尿病患者所占比例。滑块可以控制 T，折线图上会显示对应点并实时更新，直观说明 HbA1c 越高，患糖尿病的比例越大。
+    </p>
   </section>
 
   <!-- ==============================

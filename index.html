@@ -25,7 +25,7 @@
       <li><a href="#dist">HbA1c Distribution</a></li>
       <li><a href="#ageViolin">Age &amp; Gender Plots</a></li>
       <li><a href="#risk">Risk Curve</a></li>
-      <li><a href="#case">Individual Cases</a></li>
+      <li><a href="#case">BMI vs. HbA1c</a></li>
       <li><a href="#conclusion">Conclusion</a></li>
     </ul>
   </nav>
@@ -160,7 +160,7 @@
        ============================== -->
   <section id="ageViolin" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Age & Gender Analysis 说明 (全英文，详细版) -->
+      <!-- 左侧：Age & Gender Analysis 说明 -->
       <div class="summary-text">
         <h2>Age &amp; Gender Analysis</h2>
         <p>
@@ -198,45 +198,62 @@
     </div>
   </section>
 
-<section id="risk" class="section-container">
-  <div class="two-column">
-    <!-- 左侧：Slider + 折线图 -->
-    <div class="chart-container">
-      <h2>HbA1c Threshold vs. Diabetes Proportion</h2>
-      <!-- 滑块容器 -->
-      <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
-        <label for="hbSlider">HbA1c Threshold: </label>
-        <input type="range" id="hbSlider" step="0.1" />
-        <span id="thresholdValue">0.0</span>
+  <!-- ==============================
+       4. HbA1c 阈值 vs. 糖尿病比例 —— 滑块 + 折线图
+       ============================== -->
+  <section id="risk" class="section-container">
+    <div class="two-column">
+      <!-- 左侧：Slider + 折线图 -->
+      <div class="chart-container">
+        <h2>HbA1c Threshold vs. Diabetes Proportion</h2>
+        <!-- 滑块容器 -->
+        <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
+          <label for="hbSlider">HbA1c Threshold: </label>
+          <input type="range" id="hbSlider" step="0.1" />
+          <span id="thresholdValue">0.0</span>
+        </div>
+        <!-- 动态折线图的 SVG 容器 -->
+        <div id="riskBar"></div>
+        <p class="caption">Figure 3a. When HbA1c ≥ threshold T, the proportion of diabetes cases in that subgroup.</p>
       </div>
-      <!-- 动态折线图的 SVG 容器 -->
-      <div id="riskBar"></div>
-      <p class="caption">Figure 3a. When HbA1c ≥ threshold T, the proportion of diabetes cases in that subgroup.</p>
-    </div>
 
-    <!-- 右侧：对可视化的详细解释 -->
-    <div class="summary-text">
-      <h2>Interpretation</h2>
-      <p>
-        In this chart, we use a slider to dynamically control a threshold T. When the user drags the slider, the chart automatically calculates and displays the proportion of individuals with HbA1c ≥ T who have diabetes. A marker moves along the line in real time, and the percentage value is shown above it.
-      </p>
-      <ul>
-        <li>When T is low (close to the minimum HbA1c value), many individuals meet the criterion, but the proportion of diabetic patients among them is relatively small.</li>
-        <li>As T increases, only those with higher HbA1c values remain, and their diabetes proportion gradually rises.</li>
-        <li>Once T exceeds around 6.5% (the clinical diagnostic threshold), the curve quickly approaches 100%, indicating that almost all individuals in this subgroup are diagnosed with diabetes.</li>
-      </ul>
+      <!-- 右侧：对可视化的详细解释 -->
+      <div class="summary-text">
+        <h2>Interpretation</h2>
+        <p>
+          In this chart, we use a slider to dynamically control a threshold T. When the user drags the slider, the chart automatically calculates and displays the proportion of individuals with HbA1c ≥ T who have diabetes. A marker moves along the line in real time, and the percentage value is shown above it.
+        </p>
+        <ul>
+          <li>When T is low (close to the minimum HbA1c value), many individuals meet the criterion, but the proportion of diabetic patients among them is relatively small.</li>
+          <li>As T increases, only those with higher HbA1c values remain, and their diabetes proportion gradually rises.</li>
+          <li>Once T exceeds around 6.5% (the clinical diagnostic threshold), the curve quickly approaches 100%, indicating that almost all individuals in this subgroup are diagnosed with diabetes.</li>
+        </ul>
+      </div>
     </div>
-  </div>
-</section>
-
+  </section>
 
   <!-- ==============================
-       5. 个体案例模拟（如果有纵向数据，可放到这里；否则留空或删掉）
+       5. BMI vs. HbA1c Scatter + Regression
        ============================== -->
   <section id="case" class="section-container">
-    <h2>Individual Progression Examples</h2>
-    <div id="caseCharts"></div>
-    <p class="caption">Figure 4. Example trajectories from normal → prediabetes → diabetes.</p>
+    <h2>Interactive BMI vs. HbA1c Scatter Plot</h2>
+
+    <!-- 下拉菜单：选择二元风险因子 -->
+    <div class="controls">
+      <label for="factorSelect" class="control-label">Select Risk Factor:</label>
+      <select id="factorSelect" class="control-select">
+        <option value="hypertension">Hypertension</option>
+        <option value="smoking_history">Smoking</option>
+        <option value="heart_disease">Heart Disease</option>
+        <option value="high_bmi">High BMI (≥25)</option>
+      </select>
+    </div>
+
+    <!-- 散点图 SVG 容器 -->
+    <div id="scatterPlot"></div>
+    <p class="caption">
+      BMI on the X-axis, HbA1c on the Y-axis. Red points = risk factor = 1, Blue points = risk factor = 0. 虚线为各自组的线性回归拟合线。
+    </p>
   </section>
 
   <!-- ==============================

@@ -315,7 +315,7 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   Tooltip 样式
+   Tooltip 样式（用于散点图）
    ======================================================================== */
 .tooltip {
   position: absolute;
@@ -328,6 +328,36 @@ nav#navbar a:hover {
   color: #222;
   opacity: 0;
   transition: opacity 0.2s;
+  box-shadow: 0 2px 6px var(--shadow-default);
+}
+
+/* ========================================================================
+   控件区域（BMI vs. HbA1c 区块）
+   ======================================================================== */
+.controls {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+.control-label {
+  margin-right: 0.5rem;
+  font-weight: 600;
+}
+.control-select {
+  padding: 0.4rem 0.6rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+}
+
+/* ========================================================================
+   BMI vs. HbA1c 散点图容器
+   ======================================================================== */
+#scatterPlot {
+  width: 100%;
+  height: 450px;
+  position: relative;
 }
 
 /* ========================================================================

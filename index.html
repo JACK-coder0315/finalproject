@@ -160,7 +160,7 @@
        ============================== -->
   <section id="ageViolin" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Age & Gender Analysis 说明 (全英文，详细版) -->
+      <!-- 左侧：Age & Gender Analysis 说明 -->
       <div class="summary-text">
         <h2>Age &amp; Gender Analysis</h2>
         <p>
@@ -191,7 +191,7 @@
         <div id="violinPlot"></div>
         <p class="caption">Figure 2a. Violin Plot: HbA1c Distribution by Age Group</p>
 
-        <!-- Box Plot (height 与小提琴图相同) -->
+        <!-- Box Plot -->
         <div id="genderBoxPlot" style="margin-top: 2rem;"></div>
         <p class="caption">Figure 2b. Box Plot: HbA1c Distribution by Gender</p>
       </div>
@@ -233,26 +233,20 @@
   </section>
 
   <!-- ==============================
-       5. BMI vs. HbA1c Scatter + Regression
+       5. BMI vs. HbA1c（多重风险因子组合着色散点图）
        ============================== -->
   <section id="case" class="section-container">
     <h2>Interactive BMI vs. HbA1c Scatter Plot</h2>
-
-    <!-- 下拉菜单：选择二元风险因子 -->
-    <div class="controls">
-      <label for="factorSelect" class="control-label">Select Risk Factor:</label>
-      <select id="factorSelect" class="control-select">
-        <option value="hypertension">Hypertension</option>
-        <option value="smoker">Smoking</option>
-        <option value="heart_disease">Heart Disease</option>
-        <option value="high_bmi">High BMI (≥25)</option>
-      </select>
-    </div>
+    <p class="subtitle" style="margin-bottom: 1rem;">
+      X-axis = BMI, Y-axis = HbA1c (%).<br>
+      每个点的颜色对应 “高血压 (Hypertension) / 心脏病 (Heart Disease) / 吸烟 (Smoking) / 高 BMI (High BMI ≥25)” 四个二元因子的组合。<br>
+      Hover 时显示四个因子的有/无状态及该点的数值。
+    </p>
 
     <!-- 散点图 SVG 容器 -->
-    <div id="scatterPlot"></div>
+    <div id="comboScatter"></div>
     <p class="caption">
-      X-axis = selected risk factor (0 or 1, with jitter), Y-axis = HbA1c (%). Red points = risk factor = 1, Blue points = risk factor = 0. Dotted line = linear regression fit.
+      颜色图例位于右侧，仅显示实际数据中出现的组合，标签格式如 “HT:Y, HD:N, SM:Y, HB:N”（分别代表 Hypertension/Heart Disease/Smoking/High BMI）。
     </p>
   </section>
 
@@ -262,18 +256,15 @@
   <section id="conclusion" class="section-container">
     <h2>Conclusions &amp; References</h2>
     <ul>
-      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises significantly; lifestyle interventions should be initiated immediately.</li>
-      <li>Across different age groups, the average HbA1c slightly increases with age, particularly after middle age.</li>
-      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
-      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay progression from the “prediabetes” stage for some people.</li>
+      <li>通过可视化，可以直观对比不同组合下的多重风险因子人群的 HbA1c 分布。</li>
+      <li>例如：同时存在高血压、心脏病、吸烟且 BMI ≥ 25 的人群，其 HbA1c 值整体偏高。</li>
+      <li>颜色编码了 2⁴ = 16 种可能的组合（图例仅显示数据中出现过的组合）。</li>
     </ul>
     <h3>References</h3>
     <ol>
       <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in Diagnosis and Prognosis of Diabetic Complications</a></li>
       <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the Diagnosis of Diabetes</a></li>
       <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker of Well-Controlled Diabetes?</a></li>
-      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of Hemoglobin A1c in the Management of Diabetes</a></li>
-      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
     </ol>
   </section>
 

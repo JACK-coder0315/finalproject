@@ -1,56 +1,39 @@
 // main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 读取原始 Kaggle 数据
+  // 读取原始 Kaggle 数据，字段包括：hypertension, heart_disease, smoking_history, bmi, HbA1c_level, 等
   d3.csv('data/diabetes_prediction_dataset.csv', d => ({
-    gender: d.gender,
-    age: +d.age,
-    hypertension: +d.hypertension,       // 0 / 1
-    heart_disease: +d.heart_disease,     // 0 / 1
-    smoking_history: d.smoking_history,  // 字符串
-    bmi: +d.bmi,
-    hbA1c: +d.HbA1c_level,
-    blood_glucose: +d.blood_glucose_level,
-    diabetes: +d.diabetes                // 0 / 1
-  })).then(rawData => {
-    // 为每条记录添加额外字段
+    hypertension: +d.hypertension,    // 0 或 1
+    heart_disease: +d.heart_disease,  // 0 或 1
+    smoking_history: d.smoking_history, // 字符串
+    bmi: +d.bmi,                      // 数值
+    hbA1c: +d.HbA1c_level,            // 数值
+    // 其余字段可以忽略
+  }))
+  .then(rawData => {
+    // 在每条记录上添加两个新的二元字段：high_bmi, smoker
     rawData.forEach(d => {
-      // HbA1c 状态
-      if (d.hbA1c < 5.7) d.status = 'normal';
-      else if (d.hbA1c < 6.5) d.status = 'prediabetes';
-      else d.status = 'diabetes';
-
-      // 年龄分组（0-20,20-40,40-60,60-80,Other）
-      if (d.age <= 20) d.ageGroup = '0–20';
-      else if (d.age <= 40) d.ageGroup = '20–40';
-      else if (d.age <= 60) d.ageGroup = '40–60';
-      else if (d.age <= 80) d.ageGroup = '60–80';
-      else d.ageGroup = 'Other';
-
-      // High BMI（二元）
+      // high_bmi = 1 当 BMI >= 25，否则 0
       d.high_bmi = d.bmi >= 25 ? 1 : 0;
 
-      // smoker 二元：只要 smoking_history 不是 “never” 或 “no”，就算 1
+      // smoker = 1 当 smoking_history 不是 "never"/"no"（忽略大小写）时，否则 0
       const sh = d.smoking_history.trim().toLowerCase();
       d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
+
+      // 生成一个“组合键”字符串，用于后续映射颜色
+      d.comboKey = `${d.hypertension}-${d.heart_disease}-${d.smoker}-${d.high_bmi}`;
     });
 
-    // 绘制其他图表（直方图、Violin+Box、风险曲线）
+    // 先绘制其他已有的图表（直方图、Violin+Box、风险曲线）
     drawHistogram(rawData);
     drawAgeViolinGenderBox(rawData);
     drawRiskCurve(rawData);
 
-    // 初始绘制：默认选中 “hypertension”
-    drawScatterWithRegression(rawData, 'hypertension');
-
-    // 监听下拉菜单 change 事件，动态更新散点+回归
-    d3.select('#factorSelect').on('change', function() {
-      const selectedFactor = d3.select(this).property('value');
-      drawScatterWithRegression(rawData, selectedFactor);
-    });
-
-  }).catch(err => {
-    console.error('加载数据时出错：', err);
+    // 再绘制新的“多重风险因子组合着色散点图”
+    drawComboScatter(rawData);
+  })
+  .catch(err => {
+    console.error('加载 diabetes_prediction_dataset.csv 出错：', err);
   });
 
   // 初始化轮播（Carousel）
@@ -85,9 +68,9 @@ function drawHistogram(data) {
 
   // 各分类数据
   const dataAll = data;
-  const dataNormal = data.filter(d => d.status === 'normal');
-  const dataPre = data.filter(d => d.status === 'prediabetes');
-  const dataDia = data.filter(d => d.status === 'diabetes');
+  const dataNormal = data.filter(d => d.hbA1c < 5.7);
+  const dataPre = data.filter(d => d.hbA1c >= 5.7 && d.hbA1c < 6.5);
+  const dataDia = data.filter(d => d.hbA1c >= 6.5);
 
   // x 轴刻度范围
   const xDomain = [
@@ -191,6 +174,7 @@ function drawHistogram(data) {
   }
 }
 
+
 /* =========================================================================
    2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
    ========================================================================= */
@@ -201,12 +185,13 @@ function drawAgeViolinGenderBox(data) {
   const ageGrouped = {};
   ageBins.forEach(bin => ageGrouped[bin] = []);
   data.forEach(d => {
+    // 根据 d.ageGroup 已经在最开始添加
     if (ageGrouped[d.ageGroup] !== undefined) {
       ageGrouped[d.ageGroup].push(d.hbA1c);
     }
   });
 
-  // 性别分组
+  // Gender 分组
   const genderBins = ['Male', 'Female'];
   const genderGrouped = { 'Male': [], 'Female': [] };
   data.forEach(d => {
@@ -327,7 +312,7 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 
-  // 2) 绘制性别箱线图（Gender Box Plot），高度与上面相同
+  // 2) 绘制性别箱线图（Gender Box Plot）
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
@@ -352,7 +337,7 @@ function drawAgeViolinGenderBox(data) {
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
       .range([height, 0]);
 
-    // 绘制轴
+    // 绘制坐标轴
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
@@ -443,6 +428,7 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 }
+
 
 /* =========================================================================
    3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
@@ -591,242 +577,153 @@ function drawRiskCurve(data) {
   });
 }
 
-/* =========================================================================
-   4. BMI vs. HbA1c Scatter + Regression
-   ========================================================================= */
-function drawScatterWithRegression(data, factor) {
-  // 清空上一次的 svg/tooltip
-  d3.select('#scatterPlot').selectAll('*').remove();
 
-  // SVG 容器的大小
-  const margin = { top: 20, right: 30, bottom: 50, left: 60 };
-  const containerWidth = document.getElementById('scatterPlot').clientWidth;
-  const containerHeight = document.getElementById('scatterPlot').clientHeight;
+/* =========================================================================
+   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色
+   ========================================================================= */
+function drawComboScatter(data) {
+  // 清空上一次的 SVG 及 Tooltip
+  d3.select('#comboScatter').selectAll('*').remove();
+  d3.selectAll('.tooltip').remove();
+
+  // 设置 margin 和 SVG 大小
+  const margin = { top: 40, right: 180, bottom: 60, left: 60 };
+  const container = document.getElementById('comboScatter');
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // 创建 SVG
-  const svg = d3.select('#scatterPlot')
+  // 创建 SVG 画布
+  const svg = d3.select('#comboScatter')
     .append('svg')
     .attr('width', containerWidth)
     .attr('height', containerHeight)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // X 轴：根据选中的 factor 决定 0/1，并添加抖动
+  // X 轴刻度：BMI
+  const xMin = d3.min(data, d => d.bmi) - 1;
+  const xMax = d3.max(data, d => d.bmi) + 1;
   const xScale = d3.scaleLinear()
-    .domain([-0.2, 1.2])   // 二元(0,1) 加一点空白
+    .domain([xMin, xMax])
     .range([0, width]);
 
-  // Y 轴：HbA1c 连续
-  const minY = d3.min(data, d => d.hbA1c) - 0.2;
-  const maxY = d3.max(data, d => d.hbA1c) + 0.2;
+  // Y 轴刻度：HbA1c
+  const yMin = d3.min(data, d => d.hbA1c) - 0.2;
+  const yMax = d3.max(data, d => d.hbA1c) + 0.2;
   const yScale = d3.scaleLinear()
-    .domain([minY, maxY])
+    .domain([yMin, yMax])
     .range([height, 0]);
 
-  // 绘制坐标轴
+  // 绘制 X 轴
   svg.append('g')
-    .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale).tickFormat(d => d === 0 ? '0' : (d === 1 ? '1' : '')));
-
+    .attr('transform', `translate(0, ${height})`)
+    .call(d3.axisBottom(xScale).ticks(8));
+  // 绘制 Y 轴
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
 
-  // 坐标轴标签
+  // X 轴标签
   svg.append('text')
     .attr('x', width / 2)
-    .attr('y', height + margin.bottom - 10)
+    .attr('y', height + 40)
     .attr('text-anchor', 'middle')
     .attr('font-size', '14px')
-    .text(`${formatFactorName(factor)} (0 or 1)`);
+    .text('BMI');
 
+  // Y 轴标签
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -height / 2)
-    .attr('y', -margin.left + 15)
+    .attr('y', -40)
     .attr('text-anchor', 'middle')
     .attr('font-size', '14px')
     .text('HbA1c (%)');
 
-  // Tooltip
+  // 创建 Tooltip 容器
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 按因子值 (0/1) 分为两组
-  const group0 = data.filter(d => {
-    if (factor === 'hypertension') return d.hypertension === 0;
-    if (factor === 'smoker') return d.smoker === 0;
-    if (factor === 'heart_disease') return d.heart_disease === 0;
-    if (factor === 'high_bmi') return d.high_bmi === 0;
-  });
+  // “comboKey” 表示四个二元字段拼接成的字符串，例如 "1-0-1-0"
+  // 提取所有不重复的 comboKey
+  const uniqueCombos = Array.from(new Set(data.map(d => d.comboKey)));
 
-  const group1 = data.filter(d => {
-    if (factor === 'hypertension') return d.hypertension === 1;
-    if (factor === 'smoker') return d.smoker === 1;
-    if (factor === 'heart_disease') return d.heart_disease === 1;
-    if (factor === 'high_bmi') return d.high_bmi === 1;
-  });
+  // 为每个 comboKey 分配一种颜色，使用 d3.interpolateRainbow
+  const colorScale = d3.scaleOrdinal()
+    .domain(uniqueCombos)
+    .range(uniqueCombos.map((_, i) => d3.interpolateRainbow(i / (uniqueCombos.length - 1))));
 
-  // 颜色：组0 蓝，组1 红
-  const color0 = '#1f77b4';
-  const color1 = '#d62728';
-
-  // 绘制组0 的散点（带抖动）
-  svg.selectAll('.dot0')
-    .data(group0)
+  // 绘制散点
+  svg.selectAll('.dot')
+    .data(data)
     .enter()
     .append('circle')
-    .attr('class', 'dot0')
-    .attr('cx', d => xScale(0 + (Math.random() * 0.2 - 0.1))) // ±0.1 抖动
+    .attr('class', 'dot')
+    .attr('cx', d => xScale(d.bmi))
     .attr('cy', d => yScale(d.hbA1c))
     .attr('r', 4)
-    .attr('fill', color0)
-    .attr('opacity', 0.6)
+    .attr('fill', d => colorScale(d.comboKey))
+    .attr('opacity', 0.75)
     .on('mouseover', function(event, d) {
-      d3.select(this).attr('r', 6);
-      tooltip.html(
-        `${formatFactorTooltip(factor, d)}<br>` +
-        `HbA1c: ${d.hbA1c.toFixed(1)}%`
-      )
+      // 鼠标悬停时放大并加边框
+      d3.select(this)
+        .attr('r', 6)
+        .attr('stroke', '#333')
+        .attr('stroke-width', 1);
+
+      // 构造 tooltip 文本
+      const textHtml = `
+        <strong>Hypertension:</strong> ${d.hypertension === 1 ? 'Yes' : 'No'}<br>
+        <strong>Heart Disease:</strong> ${d.heart_disease === 1 ? 'Yes' : 'No'}<br>
+        <strong>Smoking:</strong> ${d.smoker === 1 ? 'Yes' : 'No'}<br>
+        <strong>High BMI (≥25):</strong> ${d.high_bmi === 1 ? 'Yes' : 'No'}<br>
+        <strong>BMI:</strong> ${d.bmi.toFixed(1)}<br>
+        <strong>HbA1c:</strong> ${d.hbA1c.toFixed(1)}%
+      `;
+      tooltip.html(textHtml)
         .style('left', (event.pageX + 12) + 'px')
         .style('top', (event.pageY - 28) + 'px')
         .style('opacity', 1);
     })
     .on('mouseout', function() {
-      d3.select(this).attr('r', 4);
+      // 鼠标移出时复原
+      d3.select(this)
+        .attr('r', 4)
+        .attr('stroke', 'none');
       tooltip.style('opacity', 0);
     });
 
-  // 绘制组1 的散点（带抖动）
-  svg.selectAll('.dot1')
-    .data(group1)
-    .enter()
-    .append('circle')
-    .attr('class', 'dot1')
-    .attr('cx', d => xScale(1 + (Math.random() * 0.2 - 0.1))) // ±0.1 抖动
-    .attr('cy', d => yScale(d.hbA1c))
-    .attr('r', 4)
-    .attr('fill', color1)
-    .attr('opacity', 0.6)
-    .on('mouseover', function(event, d) {
-      d3.select(this).attr('r', 6);
-      tooltip.html(
-        `${formatFactorTooltip(factor, d)}<br>` +
-        `HbA1c: ${d.hbA1c.toFixed(1)}%`
-      )
-        .style('left', (event.pageX + 12) + 'px')
-        .style('top', (event.pageY - 28) + 'px')
-        .style('opacity', 1);
-    })
-    .on('mouseout', function() {
-      d3.select(this).attr('r', 4);
-      tooltip.style('opacity', 0);
-    });
-
-  // 计算并绘制两组的线性回归直线
-  drawLinearFit(svg, group0, xScale, yScale, color0);
-  drawLinearFit(svg, group1, xScale, yScale, color1);
-
-  // 添加图例
-  const legendData = [
-    { label: `${formatFactorName(factor)} = 0`, color: color0 },
-    { label: `${formatFactorName(factor)} = 1`, color: color1 }
-  ];
+  // 在右侧绘制图例（Legend）
   const legend = svg.append('g')
     .attr('class', 'legend')
-    .attr('transform', `translate(${width - 140}, 10)`);
+    .attr('transform', `translate(${width + 20}, 0)`);
 
-  legend.selectAll('rect')
-    .data(legendData)
-    .enter()
-    .append('rect')
-    .attr('x', 0)
-    .attr('y', (d, i) => i * 24)
-    .attr('width', 18)
-    .attr('height', 12)
-    .attr('fill', d => d.color);
+  uniqueCombos.forEach((key, i) => {
+    const row = legend.append('g')
+      .attr('transform', `translate(0, ${i * 20})`);
 
-  legend.selectAll('text')
-    .data(legendData)
-    .enter()
-    .append('text')
-    .attr('x', 24)
-    .attr('y', (d, i) => i * 24 + 10)
-    .attr('font-size', '13px')
-    .text(d => d.label);
+    // 颜色方块
+    row.append('rect')
+      .attr('width', 14)
+      .attr('height', 14)
+      .attr('fill', colorScale(key))
+      .attr('stroke', '#555')
+      .attr('stroke-width', 0.5);
 
-  // ————————————————
-  // 内部辅助函数
-  // ————————————————
+    // 将 "0-1-0-1" 转成可读标签 "HT:N, HD:Y, SM:N, HB:Y"
+    const parts = key.split('-').map(Number);
+    const labelText =
+      `HT:${parts[0] === 1 ? 'Y' : 'N'}, ` +
+      `HD:${parts[1] === 1 ? 'Y' : 'N'}, ` +
+      `SM:${parts[2] === 1 ? 'Y' : 'N'}, ` +
+      `HB:${parts[3] === 1 ? 'Y' : 'N'}`;
 
-  // 用于 tooltip 展示本行数据的“因子信息”
-  function formatFactorTooltip(factorKey, d) {
-    switch (factorKey) {
-      case 'hypertension':
-        return `Hypertension: ${d.hypertension === 1 ? 'Yes' : 'No'}`;
-      case 'smoker':
-        return `Smoking: ${d.smoker === 1 ? 'Yes' : 'No'}`;
-      case 'heart_disease':
-        return `Heart Disease: ${d.heart_disease === 1 ? 'Yes' : 'No'}`;
-      case 'high_bmi':
-        return `High BMI (≥25): ${d.high_bmi === 1 ? 'Yes' : 'No'}`;
-      default:
-        return '';
-    }
-  }
-
-  // 将因子键名转换成人性化标签
-  function formatFactorName(factorKey) {
-    switch (factorKey) {
-      case 'hypertension': return 'Hypertension';
-      case 'smoker': return 'Smoking';
-      case 'heart_disease': return 'HeartDisease';
-      case 'high_bmi': return 'HighBMI';
-      default: return factorKey;
-    }
-  }
-
-  // 计算线性回归斜率与截距，并画成虚线
-  function drawLinearFit(svgG, groupData, xScale, yScale, lineColor) {
-    if (groupData.length < 2) return;
-    // 线性回归最小二乘法
-    const n = groupData.length;
-    const meanX = d3.mean(groupData, d => {
-      if (factor === 'hypertension') return d.hypertension;
-      if (factor === 'smoker') return d.smoker;
-      if (factor === 'heart_disease') return d.heart_disease;
-      if (factor === 'high_bmi') return d.high_bmi;
-    });
-    const meanY = d3.mean(groupData, d => d.hbA1c);
-
-    let numerator = 0, denominator = 0;
-    groupData.forEach(d => {
-      const rawX = (factor === 'hypertension' ? d.hypertension
-                    : factor === 'smoker' ? d.smoker
-                    : factor === 'heart_disease' ? d.heart_disease
-                    : d.high_bmi);
-      numerator += (rawX - meanX) * (d.hbA1c - meanY);
-      denominator += (rawX - meanX) * (rawX - meanX);
-    });
-    const slope = denominator === 0 ? 0 : numerator / denominator;
-    const intercept = meanY - slope * meanX;
-
-    // 回归线上点的 X 范围：0 → 1
-    const xMin = 0;
-    const xMax = 1;
-    const yMinPred = slope * xMin + intercept;
-    const yMaxPred = slope * xMax + intercept;
-
-    svgG.append('line')
-      .attr('x1', xScale(xMin))
-      .attr('y1', yScale(yMinPred))
-      .attr('x2', xScale(xMax))
-      .attr('y2', yScale(yMaxPred))
-      .attr('stroke', lineColor)
-      .attr('stroke-width', 2)
-      .attr('stroke-dasharray', '6 4')
-      .attr('opacity', 0.9);
-  }
+    row.append('text')
+      .attr('x', 20)
+      .attr('y', 12)
+      .attr('font-size', '12px')
+      .text(labelText);
+  });
 }

@@ -7,8 +7,7 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   height: 100%;
   font-family: 'Inter', "Helvetica Neue", sans-serif;
   color: #333;
@@ -24,14 +23,6 @@ body {
   --color-primary: #6C63FF;             /* 主紫色 */
   --color-highlight: #6C63FF;           /* 强调色 */
   --color-secondary-text: #555555;      /* 深灰文字 */
-  --color-btn-primary: #6C63FF;         /* 按钮实底色 */
-  --color-btn-primary-hover: #5951d4;
-  --color-btn-secondary: transparent;
-  --color-btn-secondary-text: #6C63FF;
-  --color-btn-secondary-border: #6C63FF;
-  --color-btn-secondary-hover-bg: #f2f2ff;
-  --color-graphic-bg: #6C63FF;           /* 右侧容器背景色 */
-  --color-decor-icon-bg: #FFB664;        /* 橘黄色小图标背景 */
   --border-radius: 20px;
   --border-radius-small: 8px;
   --shadow-default: rgba(0, 0, 0, 0.1);
@@ -74,7 +65,7 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   0.5. Hero Section 布局
+   Hero Section 布局
    ======================================================================== */
 .hero-section {
   display: flex;
@@ -143,23 +134,23 @@ nav#navbar a:hover {
 }
 
 .btn-primary {
-  background-color: var(--color-btn-primary);
+  background-color: var(--color-primary);
   color: #ffffff;
   border: none;
 }
 
 .btn-primary:hover {
-  background-color: var(--color-btn-primary-hover);
+  background-color: #5951d4;
 }
 
 .btn-secondary {
-  background-color: var(--color-btn-secondary);
-  color: var(--color-btn-secondary-text);
-  border: 2px solid var(--color-btn-secondary-border);
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-btn-secondary-hover-bg);
+  background-color: #f2f2ff;
 }
 
 /* 右侧紫色圆角容器及装饰图标 */
@@ -174,38 +165,14 @@ nav#navbar a:hover {
   position: relative;
   width: 380px;
   height: 300px;
-  background-color: var(--color-graphic-bg);
+  background-color: var(--color-primary);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-graphic);
   overflow: hidden;
 }
 
-.decor-icon {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-decor-icon-bg);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  font-size: 1.2rem;
-  cursor: default;
-}
-
-.icon-left {
-  top: calc(50% - 20px);
-  left: -20px;
-}
-
-.icon-top-right {
-  top: -20px;
-  right: -20px;
-}
-
 /* ========================================================================
-   1. 每个 Section 的统一样式
+   每个 Section 的统一样式
    ======================================================================== */
 .section-container {
   max-width: 1000px;
@@ -217,6 +184,12 @@ nav#navbar a:hover {
 .section-container h2 {
   margin-bottom: 15px;
   color: #333;
+}
+
+.section-container .subtitle {
+  font-size: 1rem;
+  color: var(--color-secondary-text);
+  margin-top: 4px;
 }
 
 .section-container p,
@@ -239,7 +212,7 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   2. 两栏布局：左侧总结文字，右侧图表
+   两栏布局：左侧总结文字，右侧图表
    ======================================================================== */
 .two-column {
   display: flex;                    /* 强制水平并排 */
@@ -320,7 +293,7 @@ nav#navbar a:hover {
 .tooltip {
   position: absolute;
   background: #fff;
-  padding: 6px;
+  padding: 6px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
   pointer-events: none;
@@ -332,31 +305,18 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   控件区（散点图上方下拉菜单）
+   BMI vs. HbA1c 散点图容器
    ======================================================================== */
-.controls {
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-}
-.control-label {
-  margin-right: 0.5rem;
-  font-weight: 600;
-}
-.control-select {
-  padding: 0.4rem 0.6rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-}
-
-/* BMI vs. HbA1c 散点图容器 */
-#scatterPlot {
+#comboScatter {
   width: 100%;
-  height: 450px;
+  height: 500px;
   position: relative;
 }
+
+/* ========================================================================
+   控件区（本例中取消了 Dropdown，故无需此类样式）
+   ======================================================================== */
+/* 如若需要可自行添加 */
 
 /* ========================================================================
    轮播 (Carousel) 样式

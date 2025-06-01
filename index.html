@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -43,34 +44,46 @@
       </p>
       <div class="hero-buttons">
         <!-- Data 按钮跳转到 Kaggle 数据集 -->
-        <a href="https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset"
-           class="btn btn-primary"
-           target="_blank"
-           rel="noopener noreferrer">
+        <a href="https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset" class="btn btn-primary"
+          target="_blank" rel="noopener noreferrer">
           Data
         </a>
         <!-- Explore more 按钮跳转到 PMC 文章 -->
-        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4933534/"
-           class="btn btn-secondary"
-           target="_blank"
-           rel="noopener noreferrer">
+        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4933534/" class="btn btn-secondary" target="_blank"
+          rel="noopener noreferrer">
           Explore more
         </a>
       </div>
     </div>
 
-    <!-- 右侧轮播区域（如果你要用轮播，可以自行添加） -->
     <div class="hero-graphic">
       <div class="graphic-container">
-        <!-- 这里可以放轮播或者一个静态插画，示例中留空 -->
-        <!-- <img class="main-image" src="images/hero_illustration.png" alt="Hero Illustration" /> -->
+        <!-- ====== 轮播 (Carousel) 开始 ====== -->
+        <div class="carousel">
+          <!-- 第一帧 -->
+          <div class="slide active">
+            <img src="images/slide1.png" alt="3D Render of Red Blood Cells" />
+          </div>
+          <!-- 第二帧 -->
+          <div class="slide">
+            <img src="images/slide2.png" alt="High vs Low HbA1c on Red Blood Cell" />
+          </div>
+          <!-- 第三帧 -->
+          <div class="slide">
+            <img src="images/slide3.png" alt="Normal vs High Blood Glucose Illustration" />
+          </div>
+          <!-- 第四帧 -->
+          <div class="slide">
+            <img src="images/slide4.png" alt="Blood Glucose Meter Illustration" />
+          </div>
+        </div>
+        <!-- ====== 轮播 (Carousel) 结束 ====== -->
       </div>
-      <!-- 如果需要装饰图标，可在此处添加 .decor-icon 元素 -->
+      <!-- 如需装饰图标，可以在这里插入 .decor-icon -->
       <!-- <div class="decor-icon icon-left">★</div> -->
       <!-- <div class="decor-icon icon-top-right">✎</div> -->
     </div>
   </section>
-
   <!-- ==============================
        1. 引言部分
        ============================== -->
@@ -103,8 +116,9 @@
     <!-- 左侧 Key Takeaways: 总人数 + 各类别人数 -->
     <div class="summary-text">
       <h2>Key Statistics</h2>
-      <p>Dataset Summary: In this cohort, we have <strong>10,000 participants</strong> who provided both HbA1c and demographic data.</p>
-      
+      <p>Dataset Summary: In this cohort, we have <strong>10,000 participants</strong> who provided both HbA1c and
+        demographic data.</p>
+
       <div class="stats-grid">
         <div class="stat-item">
           <h3>10,000</h3>
@@ -125,7 +139,10 @@
       </div>
 
       <p>
-        Over time, the histogram cycles through highlighting each category (all → normal → prediabetes → diabetes → all), enabling us to visually appreciate how each subgroup’s frequency varies. The oscillation emphasizes that although most individuals cluster around the “normal” range, a notable portion resides in the “prediabetes” zone, reaffirming the need for timely screening.
+        Over time, the histogram cycles through highlighting each category (all → normal → prediabetes → diabetes →
+        all), enabling us to visually appreciate how each subgroup’s frequency varies. The oscillation emphasizes that
+        although most individuals cluster around the “normal” range, a notable portion resides in the “prediabetes”
+        zone, reaffirming the need for timely screening.
       </p>
     </div>
 
@@ -175,18 +192,26 @@
   <section id="conclusion" class="section-container">
     <h2>Conclusions &amp; References</h2>
     <ul>
-      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises significantly; lifestyle interventions should be initiated immediately.</li>
+      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises
+        significantly; lifestyle interventions should be initiated immediately.</li>
       <li>Across different age groups, the average HbA1c increases with age, particularly after middle age.</li>
-      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
-      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay progression from the “prediabetes” stage for some people.</li>
+      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of
+        developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
+      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay
+        progression from the “prediabetes” stage for some people.</li>
     </ul>
     <h3>References</h3>
     <ol>
-      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in Diagnosis and Prognosis of Diabetic Complications</a></li>
-      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the Diagnosis of Diabetes</a></li>
-      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker of Well-Controlled Diabetes?</a></li>
-      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of Hemoglobin A1c in the Management of Diabetes</a></li>
-      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in
+          Diagnosis and Prognosis of Diabetic Complications</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the
+          Diagnosis of Diabetes</a></li>
+      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker
+          of Well-Controlled Diabetes?</a></li>
+      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of
+          Hemoglobin A1c in the Management of Diabetes</a></li>
+      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes
+          Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
     </ol>
   </section>
 
@@ -195,4 +220,5 @@
        ============================== -->
   <script src="main.js"></script>
 </body>
+
 </html>

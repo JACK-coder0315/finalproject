@@ -121,11 +121,11 @@ function drawHistogram(data) {
     .data(currentBins)
     .enter()
     .append('rect')
-      .attr('x', d => x(d.x0) + 1)
-      .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
-      .attr('y', height)
-      .attr('height', 0)
-      .attr('fill', '#69b3a2');
+    .attr('x', d => x(d.x0) + 1)
+    .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+    .attr('y', height)
+    .attr('height', 0)
+    .attr('fill', '#69b3a2');
 
   // 鼠标交互
   rects
@@ -418,10 +418,10 @@ function drawRiskCurve(data) {
     .data(riskData)
     .enter()
     .append('circle')
-      .attr('cx', d => x(d.hbA1c))
-      .attr('cy', d => y(d.risk_prob))
-      .attr('r', 0)
-      .attr('fill', '#d62728');
+    .attr('cx', d => x(d.hbA1c))
+    .attr('cy', d => y(d.risk_prob))
+    .attr('r', 0)
+    .attr('fill', '#d62728');
 
   circles.transition()
     .delay((d, i) => i * 30)
@@ -440,10 +440,10 @@ function drawRiskCurve(data) {
     .attr('stroke', '#1f77b4')
     .attr('stroke-width', 2)
     .attr('d', line)
-    .attr('stroke-dasharray', function() {
+    .attr('stroke-dasharray', function () {
       return this.getTotalLength() + ' ' + this.getTotalLength();
     })
-    .attr('stroke-dashoffset', function() {
+    .attr('stroke-dashoffset', function () {
       return this.getTotalLength();
     });
 
@@ -601,13 +601,13 @@ function drawViolinBoxPlot(data) {
     .data(allGroups)
     .enter()
     .append('g')
-      .attr('transform', d => `
+    .attr('transform', d => `
         translate(
           ${x0(d.ageDecade) + x1(d.status) + x1.bandwidth() / 2},
           0
         )
       `)
-      .attr('opacity', 0);
+    .attr('opacity', 0);
 
   // 绘制小提琴
   groupContainer.each(function (d) {
@@ -715,3 +715,27 @@ function drawViolinBoxPlot(data) {
     .attr('font-size', '12px')
     .attr('alignment-baseline', 'middle');
 }
+
+// 确保这段脚本在 DOM 加载完成后执行
+document.addEventListener('DOMContentLoaded', function () {
+  // 找到所有 .carousel .slide
+  const slides = document.querySelectorAll('.carousel .slide');
+  let currentIndex = 0;
+  const slideCount = slides.length;
+  const intervalTime = 3000; // 每 3000ms（3s）切换一次
+
+  // 如果帧数 <= 1，则不需要轮播
+  if (slideCount <= 1) return;
+
+  function showNextSlide() {
+    // 1. 隐藏当前帧
+    slides[currentIndex].classList.remove('active');
+    // 2. 计算下一张的索引
+    currentIndex = (currentIndex + 1) % slideCount;
+    // 3. 显示下一帧
+    slides[currentIndex].classList.add('active');
+  }
+
+  // 首次不立刻切换，让用户看到第一帧，间隔后再执行
+  setInterval(showNextSlide, intervalTime);
+});

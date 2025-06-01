@@ -250,43 +250,40 @@ nav#navbar a:hover {
 }
 
 /* ========================================================================
-   2. 两栏布局：左侧总结文字，右侧图表
+   2. 两栏布局：左侧总结文字，右侧图表（关键修改）
    ======================================================================== */
 .two-column {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: flex;                    /* 强制左右并排 */
+  flex-direction: row;              /* 主轴为水平方向 */
+  align-items: flex-start;          /* 顶部对齐 */
+  justify-content: space-between;   /* 两侧拉开 */
+  gap: 2rem;                        /* 左右间距 */
+  flex-wrap: nowrap;                /* 禁止换行 */
 }
 
-/* 左侧总结文字的样式 */
+/* 左侧总结文字区域 */
 .summary-text {
-  flex: 1 1 300px;
+  flex: 0 0 40%;                    /* 占父容器 40% 宽度 */
   background-color: #ffffff;
   border-radius: var(--border-radius-small);
   padding: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   color: #333;
 }
-
 .summary-text h2 {
   font-size: 1.75rem;
   margin-bottom: 1rem;
   color: #333;
 }
-
 .summary-text p {
   margin-bottom: 1rem;
   line-height: 1.6;
   color: var(--color-secondary-text);
 }
-
 .summary-text ul {
   list-style: disc inside;
   margin-bottom: 1rem;
 }
-
 .summary-text ul li {
   margin-bottom: 0.5rem;
   line-height: 1.5;
@@ -294,15 +291,13 @@ nav#navbar a:hover {
 
 /* 右侧图表容器 */
 .chart-container {
-  flex: 1 1 500px;
+  flex: 0 0 55%;                    /* 占父容器 55% 宽度 */
 }
-
 .chart-container h2 {
   font-size: 1.75rem;
   margin-bottom: 0.5rem;
   color: #333;
 }
-
 .chart-container .caption {
   margin-top: 4px;
 }
@@ -387,7 +382,7 @@ nav#navbar a:hover {
    响应式：如果屏幕太窄，自动上下堆叠
    ======================================================================== */
 @media (max-width: 992px) {
-  /* 两栏布局改为上下堆叠 */
+  /* 当宽度 ≤ 992px 时，两栏改为上下堆叠 */
   .two-column {
     flex-direction: column;
     text-align: center;
@@ -395,7 +390,7 @@ nav#navbar a:hover {
   .summary-text,
   .chart-container {
     width: 100%;
-    flex: none;
+    flex: none; /* 禁止 flex:0 0 XX% 继续生效，直接占满 100% */
   }
 }
 

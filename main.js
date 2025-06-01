@@ -27,11 +27,25 @@ document.addEventListener('DOMContentLoaded', () => {
     drawHistogram(rawData);
     drawAgeTrend(rawData);
     drawRiskCurve(rawData);
-    // 如果不需要箱线＋小提琴图组合，就直接注释掉下面这一行：
+    // 如果不需要箱线 + 小提琴图组合，就注释掉下面一行：
     // drawViolinBoxPlot(rawData);
   }).catch(error => {
     console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
   });
+
+
+  // 初始化轮播（Carousel）
+  const slides = document.querySelectorAll('.carousel .slide');
+  let currentIndex = 0;
+  const slideCount = slides.length;
+  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
+  if (slideCount > 1) {
+    setInterval(() => {
+      slides[currentIndex].classList.remove('active');
+      currentIndex = (currentIndex + 1) % slideCount;
+      slides[currentIndex].classList.add('active');
+    }, intervalTime);
+  }
 });
 
 
@@ -465,8 +479,7 @@ function drawRiskCurve(data) {
 
 /* =========================================================================
    4. 血糖浓度分布 —— 小提琴 + 箱线图组合
-   如果不需要这部分，可直接注释掉 drawViolinBoxPlot(rawData) 的调用，
-   或者将整个函数体删除 / 注释掉。
+   如果不需要这部分，可直接注释掉 drawViolinBoxPlot(rawData) 的调用
    ========================================================================= */
 function drawViolinBoxPlot(data) {
   const ageGroups = Array.from(new Set(data.map(d => d.ageDecade))).sort((a, b) => {
@@ -547,7 +560,7 @@ function drawViolinBoxPlot(data) {
   ageGroups.forEach(ad => {
     hbaStates.forEach(st => {
       const arr = data
-        .filter(d => d.ageDecade === ad && d.hba1cStatus === st)
+        .filter(d => d.ageDecade === ad && d.status === st)
         .map(d => d.blood_glucose);
 
       if (arr.length === 0) {
@@ -702,27 +715,3 @@ function drawViolinBoxPlot(data) {
     .attr('font-size', '12px')
     .attr('alignment-baseline', 'middle');
 }
-
-// 确保放在 main.js 最末尾，或放到 index.html 中 </body> 前
-document.addEventListener('DOMContentLoaded', function() {
-  // 找到所有 .carousel .slide
-  const slides = document.querySelectorAll('.carousel .slide');
-  let currentIndex = 0;
-  const slideCount = slides.length;
-  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
-
-  // 如果根本没有 slide，或只有一张，不用轮播
-  if (slideCount <= 1) return;
-
-  function showNextSlide() {
-    // 去掉当前这一张的 active
-    slides[currentIndex].classList.remove('active');
-    // 计算下一张索引
-    currentIndex = (currentIndex + 1) % slideCount;
-    // 给下一张加上 active
-    slides[currentIndex].classList.add('active');
-  }
-
-  // 先预留 t=3s 后开始第一次切换
-  setInterval(showNextSlide, intervalTime);
-});

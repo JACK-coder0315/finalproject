@@ -31,7 +31,7 @@
   </nav>
 
   <!-- ==============================
-       0. Hero Section：左右两栏，左侧文字+按钮，右侧紫色圆角背景+装饰
+       0. Hero Section：左右两栏，左侧文字+按钮，右侧紫色圆角背景+轮播
        ============================== -->
   <section id="hero" class="hero-section">
     <!-- 左侧文字区域 -->
@@ -40,7 +40,7 @@
         The Effect of <span class="highlight">HbA1c</span> on Predicting diabetes
       </h1>
       <p class="hero-subtitle">
-        Investigating the potential diabetes of people from different age and HbA1c level
+        Investigating the potential diabetes risk of people from different ages and HbA1c levels.
       </p>
       <div class="hero-buttons">
         <!-- Data 按钮跳转到 Kaggle 数据集 -->
@@ -79,9 +79,9 @@
           </div>
         </div>
         <!-- ====== 轮播 (Carousel) 结束 ====== -->
-      </div> <!-- 关闭 graphic-container -->
-    </div> <!-- 关闭 hero-graphic -->
-  </section> <!-- 关闭 hero -->
+      </div>
+    </div>
+  </section>
 
   <!-- ==============================
        1. 引言部分
@@ -109,12 +109,38 @@
   </section>
 
   <!-- ==============================
-       2. 人群 HbA1c 分布（直方图）
+       2. 两栏布局：左侧“总结文字”，右侧“动态直方图”
        ============================== -->
-  <section id="dist" class="section-container">
-    <h2>Population-Level HbA1c Distribution</h2>
-    <div id="histogram"></div>
-    <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
+  <section id="dist" class="section-container two-column">
+    <!-- 左侧总结文字 -->
+    <div class="summary-text">
+      <h2>Key Takeaways</h2>
+      <p>
+        This dynamic histogram illustrates the distribution of HbA1c values across the entire cohort, highlighting
+        three risk categories:
+      </p>
+      <ul>
+        <li><strong>Normal (HbA1c &lt; 5.7%)</strong>: Majority of participants fall within the normal range, indicating
+          controlled long-term blood sugar.</li>
+        <li><strong>Prediabetes (5.7% ≤ HbA1c &lt; 6.5%)</strong>: A sizeable segment hovers near the threshold, suggesting
+          many are at elevated risk and may benefit from lifestyle modifications.</li>
+        <li><strong>Diabetes (HbA1c ≥ 6.5%)</strong>: A smaller but nonnegligible fraction has overtly high HbA1c,
+          requiring clinical intervention.</li>
+      </ul>
+      <p>
+        Over time, the histogram cycles through highlighting each category (all → normal → prediabetes → diabetes → all),
+        enabling us to visually appreciate how each subgroup’s frequency varies. The oscillation emphasizes that although
+        most individuals cluster around the “normal” range, a notable portion resides in the “prediabetes” zone,
+        reaffirming the need for timely screening.
+      </p>
+    </div>
+
+    <!-- 右侧动态直方图容器 -->
+    <div class="chart-container">
+      <h2>Population-Level HbA1c Distribution</h2>
+      <div id="histogram"></div>
+      <p class="caption">Figure 1. Distribution of HbA1c values in a representative cohort.</p>
+    </div>
   </section>
 
   <!-- ==============================

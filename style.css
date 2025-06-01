@@ -2,319 +2,350 @@
    Reset & 通用样式
    ======================================================================== */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 html,
 body {
-    height: 100%;
-    font-family: 'Inter', "Helvetica Neue", sans-serif;
-    color: #333;
-    background: #f5fff8;
-    line-height: 1.6;
-    scroll-behavior: smooth;
+  height: 100%;
+  font-family: 'Inter', "Helvetica Neue", sans-serif;
+  color: #333;
+  background: #f5fff8;
+  line-height: 1.6;
+  scroll-behavior: smooth;
 }
 
 /* ========================================================================
    0. CSS 变量：配色 / 圆角 / 阴影
    ======================================================================== */
 :root {
-    --color-primary: #6C63FF;
-    /* 主紫色 */
-    --color-highlight: #6C63FF;
-    /* 强调色 */
-    --color-secondary-text: #555555;
-    /* 深灰文字 */
-    --color-btn-primary: #6C63FF;
-    /* 按钮实底色 */
-    --color-btn-primary-hover: #5951d4;
-    --color-btn-secondary: transparent;
-    --color-btn-secondary-text: #6C63FF;
-    --color-btn-secondary-border: #6C63FF;
-    --color-btn-secondary-hover-bg: #f2f2ff;
-    --color-graphic-bg: #6C63FF;
-    /* 右侧容器背景色 */
-    --color-decor-icon-bg: #FFB664;
-    /* 橘黄色小图标背景 */
-    --border-radius: 20px;
-    --border-radius-small: 8px;
-    --shadow-default: rgba(0, 0, 0, 0.1);
-    --shadow-graphic: 0 20px 40px rgba(0, 0, 0, 0.15);
+  --color-primary: #6C63FF;             /* 主紫色 */
+  --color-highlight: #6C63FF;           /* 强调色 */
+  --color-secondary-text: #555555;      /* 深灰文字 */
+  --color-btn-primary: #6C63FF;         /* 按钮实底色 */
+  --color-btn-primary-hover: #5951d4;
+  --color-btn-secondary: transparent;
+  --color-btn-secondary-text: #6C63FF;
+  --color-btn-secondary-border: #6C63FF;
+  --color-btn-secondary-hover-bg: #f2f2ff;
+  --color-graphic-bg: #6C63FF;           /* 右侧容器背景色 */
+  --color-decor-icon-bg: #FFB664;        /* 橘黄色小图标背景 */
+  --border-radius: 20px;
+  --border-radius-small: 8px;
+  --shadow-default: rgba(0, 0, 0, 0.1);
+  --shadow-graphic: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 /* ========================================================================
    顶部导航栏
    ======================================================================== */
 nav#navbar {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background-color: #ffffff;
-    border-bottom: 1px solid #ddd;
-    z-index: 100;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-bottom: 1px solid #ddd;
+  z-index: 100;
 }
 
 nav#navbar ul {
-    list-style: none;
-    display: flex;
-    justify-content: center;
+  list-style: none;
+  display: flex;
+  justify-content: center;
 }
 
 nav#navbar li {
-    margin: 0 15px;
+  margin: 0 15px;
 }
 
 nav#navbar a {
-    display: block;
-    padding: 15px;
-    text-decoration: none;
-    color: #333;
-    font-weight: 500;
-    transition: color 0.3s;
+  display: block;
+  padding: 15px;
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.3s;
 }
 
 nav#navbar a:hover {
-    color: #007acc;
+  color: #007acc;
 }
 
 /* ========================================================================
-   0.5. Hero Section 布局（新增部分）
+   0.5. Hero Section 布局
    ======================================================================== */
 .hero-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5rem 2rem 2rem;
-    /* 顶部留出导航 5rem */
-    gap: 2rem;
-    margin-top: 60px;
-    /* 避免导航栏遮挡 */
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5rem 2rem 2rem;   /* 顶部留出导航 5rem */
+  gap: 2rem;
+  margin-top: 60px;          /* 避免导航栏遮挡 */
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media screen and (max-width: 768px) {
-    .hero-section {
-        flex-direction: column;
-        text-align: center;
-        padding: 3rem 1rem 1rem;
-        margin-top: 60px;
-    }
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 3rem 1rem 1rem;
+    margin-top: 60px;
+  }
 
-    .hero-graphic {
-        margin-top: 2rem;
-    }
+  .hero-graphic {
+    margin-top: 2rem;
+  }
 }
 
 .hero-text {
-    flex: 1 1 400px;
-    max-width: 600px;
+  flex: 1 1 400px;
+  max-width: 600px;
 }
 
 .hero-title {
-    font-size: 2.75rem;
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 1rem;
-    color: #333333;
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: #333333;
 }
 
 .hero-title .highlight {
-    color: var(--color-highlight);
+  color: var(--color-highlight);
 }
 
 .hero-subtitle {
-    font-size: 1.125rem;
-    font-weight: 400;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-    color: var(--color-secondary-text);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: var(--color-secondary-text);
 }
 
 .hero-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .btn {
-    display: inline-block;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1rem;
-    border-radius: var(--border-radius-small);
-    padding: 0.75rem 1.5rem;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--border-radius-small);
+  padding: 0.75rem 1.5rem;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-primary {
-    background-color: var(--color-btn-primary);
-    color: #ffffff;
-    border: none;
+  background-color: var(--color-btn-primary);
+  color: #ffffff;
+  border: none;
 }
 
 .btn-primary:hover {
-    background-color: var(--color-btn-primary-hover);
+  background-color: var(--color-btn-primary-hover);
 }
 
 .btn-secondary {
-    background-color: var(--color-btn-secondary);
-    color: var(--color-btn-secondary-text);
-    border: 2px solid var(--color-btn-secondary-border);
+  background-color: var(--color-btn-secondary);
+  color: var(--color-btn-secondary-text);
+  border: 2px solid var(--color-btn-secondary-border);
 }
 
 .btn-secondary:hover {
-    background-color: var(--color-btn-secondary-hover-bg);
+  background-color: var(--color-btn-secondary-hover-bg);
 }
 
 /* 右侧紫色圆角容器及装饰图标 */
 .hero-graphic {
-    flex: 1 1 400px;
-    display: flex;
-    justify-content: center;
-    position: relative;
+  flex: 1 1 400px;
+  display: flex;
+  justify-content: center;
+  position: relative;
 }
 
 .graphic-container {
-    position: relative;
-    width: 380px;
-    height: 300px;
-    background-color: var(--color-graphic-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-graphic);
-    overflow: hidden;
+  position: relative;
+  width: 380px;
+  height: 300px;
+  background-color: var(--color-graphic-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-graphic);
+  overflow: hidden;
 }
 
 .graphic-container .main-image {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 260px;
-    /* 可根据你插画调整 */
-    height: auto;
-    object-fit: contain;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px;   /* 根据实际插画自行调整 */
+  height: auto;
+  object-fit: contain;
 }
 
 /* 装饰性小图标 */
 .decor-icon {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    background-color: var(--color-decor-icon-bg);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    font-size: 1.2rem;
-    cursor: default;
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-decor-icon-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-size: 1.2rem;
+  cursor: default;
 }
 
-/* 左中部一个小装饰 icon */
 .icon-left {
-    top: calc(50% - 20px);
-    /* 40px 高度的一半 */
-    left: -20px;
-    /* 往左偏一点，半个图标宽度 */
+  top: calc(50% - 20px);
+  left: -20px;
 }
 
-/* 右上角一个小装饰 icon */
 .icon-top-right {
-    top: -20px;
-    /* 往上偏一点 */
-    right: -20px;
-    /* 往右偏一点 */
+  top: -20px;
+  right: -20px;
 }
 
 /* ========================================================================
-   1. 每个 Section 的统一样式（保留原来的设置）
+   1. 每个 Section 的统一样式
    ======================================================================== */
 .section-container {
-    padding: 100px 40px 60px;
-    max-width: 1000px;
-    margin: 0 auto;
+  padding: 100px 40px 60px;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .section-container h1,
 .section-container h2 {
-    margin-bottom: 15px;
-    color: #333;
+  margin-bottom: 15px;
+  color: #333;
 }
 
 .section-container p,
 .section-container ul,
 .section-container ol {
-    margin-top: 10px;
-    color: #555;
+  margin-top: 10px;
+  color: #555;
 }
 
 .section-container ul li,
 .section-container ol li {
-    margin-bottom: 6px;
+  margin-bottom: 6px;
 }
 
 .caption {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #666;
-    text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+/* ========================================================================
+   2. 两栏布局：左侧总结文字，右侧图表
+   ======================================================================== */
+.two-column {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* 左侧总结文字的样式 */
+.summary-text {
+  flex: 1 1 300px;
+  background-color: #ffffff;
+  border-radius: var(--border-radius-small);
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.summary-text h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.summary-text p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  color: var(--color-secondary-text);
+}
+
+.summary-text ul {
+  list-style: disc inside;
+  margin-bottom: 1rem;
+}
+
+.summary-text ul li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* 右侧图表容器 */
+.chart-container {
+  flex: 1 1 500px;
+}
+
+.chart-container h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.chart-container .caption {
+  margin-top: 4px;
 }
 
 /* ========================================================================
    滑块容器 (Age Slider)
    ======================================================================== */
 #age-slider-container {
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
 }
 
 #age-slider-container label {
-    margin-right: 10px;
-    font-weight: 500;
+  margin-right: 10px;
+  font-weight: 500;
 }
 
 #ageSlider {
-    flex: 1;
-    margin-right: 10px;
+  flex: 1;
+  margin-right: 10px;
 }
 
 #ageValue {
-    font-size: 16px;
-    font-weight: bold;
+  font-size: 16px;
+  font-weight: bold;
 }
 
 /* ========================================================================
    Tooltip 样式
    ======================================================================== */
 .tooltip {
-    position: absolute;
-    background: #fff;
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    pointer-events: none;
-    font-size: 13px;
-    color: #222;
-    opacity: 0;
-    transition: opacity 0.2s;
+  position: absolute;
+  background: #fff;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 13px;
+  color: #222;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-
-/* ========================================================================
-   0. 让 .hero-section 本身水平居中（如果你还没加，可以把下面两行放到 .hero-section 里）
-   ======================================================================== */
-/* 如果你已经在 .hero-section 或者外面套了 .section-container，那就跳过此处 */
-/*
-.hero-section {
-  max-width: 1000px;
-  margin-left: auto;
-  margin-right: auto;
-}
-*/
 
 /* ========================================================================
    轮播 (Carousel) 样式
@@ -332,74 +363,68 @@ nav#navbar a:hover {
   left: 0;
   width: 100%;
   height: 100%;
-
-  /* 初始都隐藏，不可见 */
-  opacity: 0;
-  /* 淡入淡出的过渡时间，你可以改成 0.5s、1s 等 */
+  opacity: 0;                  /* 初始都隐藏 */
   transition: opacity 0.8s ease;
 }
 
-/* 带 .active 的这帧才是真正“可见”的 */
 .carousel .slide.active {
-  opacity: 1;
+  opacity: 1;                  /* 带 active 的可见 */
 }
 
-/* 把 <img> 内容上下左右都等比居中摆放 */
 .carousel .slide img {
   display: block;
-  /* 限制最大宽度/高度，保持等比缩放 */
   max-width: 100%;
   max-height: 100%;
-  /* 图像在父容器内水平 + 垂直居中 */
   margin: auto;
   position: absolute;
-  top: 0; bottom: 0; left: 0; right: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
-/* 橘黄色装饰图标保持原来定义 */
-/* .decor-icon, .icon-left, .icon-top-right 等保持不动 */
-
 /* ========================================================================
-   响应式：如果屏幕太窄，隐藏装饰图标，或者缩小轮播容器
+   响应式：如果屏幕太窄，自动上下堆叠
    ======================================================================== */
+@media (max-width: 992px) {
+  /* 两栏布局改为上下堆叠 */
+  .two-column {
+    flex-direction: column;
+    text-align: center;
+  }
+  .summary-text,
+  .chart-container {
+    width: 100%;
+    flex: none;
+  }
+}
+
 @media (max-width: 768px) {
-  /* 让 Hero 区竖直堆叠，或者隐藏装饰图标都可以 */
   .hero-section {
     flex-direction: column;
     text-align: center;
     padding: 3rem 1rem 1rem;
     margin-top: 60px;
   }
-  /* 隐藏橘黄色小图标 */
   .decor-icon {
     display: none;
   }
-  /* 如果需要，可以给 .carousel 或 .graphic-container 加一个固定高度 */
-  /* 比如让轮播高度为 250px 左右。*/
-  /*
+  /* 缩小轮播高度 */
   .graphic-container {
     height: 250px;
+    width: 100%;
+    max-width: 350px;
   }
   .carousel .slide img {
     max-height: 250px;
   }
-  */
-}
-
-
-/* ========================================================================
-   响应式调整 (小屏幕)
-   ======================================================================== */
-@media (max-width: 768px) {
-    .section-container {
-        padding: 100px 20px 40px;
-    }
-
-    nav#navbar ul {
-        flex-wrap: wrap;
-    }
-
-    nav#navbar li {
-        margin: 5px 10px;
-    }
+  .section-container {
+    padding: 100px 20px 40px;
+  }
+  nav#navbar ul {
+    flex-wrap: wrap;
+  }
+  nav#navbar li {
+    margin: 5px 10px;
+  }
 }

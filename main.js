@@ -124,20 +124,20 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // Group data by status
+  // 按 status 分组
   const dataAll = data;
   const dataNormal = data.filter(d => d.status === 'normal');
   const dataPre = data.filter(d => d.status === 'prediabetes');
   const dataDia = data.filter(d => d.status === 'diabetes');
 
-  // X axis scale
+  // X 轴范围
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
   ];
   const x = d3.scaleLinear().domain(xDomain).range([0, width]);
 
-  // Histogram generator
+  // histogram 生成器
   const histogramGen = d3.histogram()
     .value(d => d.hbA1c)
     .domain(x.domain())
@@ -154,21 +154,21 @@ function drawHistogram(data) {
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // Draw X axis
+  // 绘制 X 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // Draw Y axis
+  // 绘制 Y 轴
   const yAxis = svg.append('g')
     .call(d3.axisLeft(y));
 
-  // Tooltip container
+  // 创建 tooltip 元素（初始 display: none; opacity: 0）
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // Draw initial bars
+  // 绘制初始的柱状图
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
@@ -179,26 +179,40 @@ function drawHistogram(data) {
     .attr('height', 0)
     .attr('fill', '#69b3a2');
 
+  // 鼠标交互：mouseover, mouseout
   rects
     .on('mouseover', function (event, d) {
-      d3.select(this).attr('fill', '#ff7f0e');
-      tooltip.html(`Range: ${d.x0.toFixed(1)} – ${d.x1.toFixed(1)}<br>Count: ${d.length}`)
+      // 先显示 tooltip，再渐变到 opacity = 1
+      tooltip
+        .style('display', 'block')
         .style('left', (event.pageX + 10) + 'px')
         .style('top', (event.pageY - 30) + 'px')
+        .html(`Range: ${d.x0.toFixed(1)} – ${d.x1.toFixed(1)}<br>Count: ${d.length}`)
+        .transition()
+        .duration(100)
         .style('opacity', 1);
+
+      d3.select(this).attr('fill', '#ff7f0e');
     })
     .on('mouseout', function () {
+      // 点击移出时，先把 opacity 变为 0，然后在过渡结束后把 display 设为 none
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', 0)
+        .on('end', () => {
+          tooltip.style('display', 'none');
+        });
+
       d3.select(this).attr('fill', '#69b3a2');
-      tooltip.style('opacity', 0);
     });
 
-  // Animate bars from bottom up
+  // 初始动画：柱子从底部“长出”
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // Cycle through categories: all → normal → prediabetes → diabetes → all
+  // 分类顺序循环：all → normal → prediabetes → diabetes → all
   const categories = [
     { name: 'all', bins: binsAll },
     { name: 'normal', bins: binsNor },
@@ -224,6 +238,7 @@ function drawHistogram(data) {
       .attr('height', d => height - y(d.length));
   }
 }
+
 
 
 // ======================================================

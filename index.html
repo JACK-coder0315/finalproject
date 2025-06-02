@@ -209,7 +209,7 @@
   <!-- ==============================
        4. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
        ============================== -->
-  <section id="risk" class="section-container">
+ <section id="risk" class="section-container">
   <div class="two-column">
     <!-- 左侧：Slider + 折线图 -->
     <div class="chart-container">
@@ -222,26 +222,27 @@
       </div>
       <!-- 动态折线图的 SVG 容器 -->
       <div id="riskBar"></div>
-      <p class="caption">Figure 3a. 当 HbA1c ≥ 阈值 T 时，该人群中糖尿病患者所占比例。</p>
+      <p class="caption">Figure 3a. When HbA1c ≥ threshold T, the proportion of diabetes cases in that subgroup.</p>
     </div>
 
     <!-- 右侧：对可视化的详细解释 -->
     <div class="summary-text">
       <h2>Interpretation</h2>
       <p>
-        在这张图中，我们使用滑块来动态控制一个阈值 T。当用户拖动滑块时，图表会自动计算并显示 HbA1c 值 ≥ T 的子人群中，糖尿病患者所占的比例。圆点会沿着折线实时移动，并且上方会标注百分比数值。
+        In this chart, we use a slider to dynamically control a threshold T. When the user drags the slider, the chart automatically calculates and displays the proportion of individuals with HbA1c ≥ T who have diabetes. A marker moves along the line in real time, and the percentage value is shown above it.
       </p>
       <ul>
-        <li>当 T 较低（接近 HbA1c 的最小值）时，满足条件的个体较多，但其中糖尿病患者的比例相对较低。</li>
-        <li>随着 T 不断提高，仅保留 HbA1c 较高的那部分人群，此时他们患糖尿病的比例逐步升高。</li>
-        <li>当 T 超过约 6.5%（临界诊断值）后，曲线迅速向 100% 靠拢，表明几乎所有这部分人群都确诊为糖尿病。</li>
+        <li>When T is low (close to the minimum HbA1c value), many individuals meet the criterion, but the proportion of diabetic patients among them is relatively small.</li>
+        <li>As T increases, only those with higher HbA1c values remain, and their diabetes proportion gradually rises.</li>
+        <li>Once T exceeds around 6.5% (the clinical diagnostic threshold), the curve quickly approaches 100%, indicating that almost all individuals in this subgroup are diagnosed with diabetes.</li>
       </ul>
       <p>
-        通过这种左右分栏的布局，我们可以一边观察滑块与曲线动态变化，一边在右侧详细了解每个阈值所对应的数据含义，从而直观说明 HbA1c 越高，患糖尿病的比例就越大。
+        With this two-column layout, we can observe the slider and curve updating dynamically on the left while reading a detailed explanation on the right. This clearly demonstrates that as HbA1c increases, the proportion of individuals with diabetes also increases.
       </p>
     </div>
   </div>
 </section>
+
 
 
   <!-- ==============================

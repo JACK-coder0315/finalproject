@@ -25,32 +25,47 @@ document.addEventListener('DOMContentLoaded', () => {
       // 这里只保留了这个 CSV 中真正用到的字段
     }))
   ]).then(([dataWithHb, dataPred]) => {
-    // 在每条记录上添加两个新的二元字段：high_bmi, smoker
-    rawData.forEach(d => {
+    // —— 先处理 dataWithHb，给它补充 status 和 ageGroup 字段 —— 
+    dataWithHb.forEach(d => {
+      // 根据 HbA1c 划分“状态”
+      if (d.hbA1c < 5.7) d.status = 'normal';
+      else if (d.hbA1c < 6.5) d.status = 'prediabetes';
+      else d.status = 'diabetes';
+
+      // 根据年龄划分“年龄组”
+      if (d.age <= 20) d.ageGroup = '0–20';
+      else if (d.age <= 40) d.ageGroup = '20–40';
+      else if (d.age <= 60) d.ageGroup = '40–60';
+      else if (d.age <= 80) d.ageGroup = '60–80';
+      else d.ageGroup = 'Other';
+    });
+
+    // —— 然后处理 dataPred，给它补充 high_bmi, smoker, comboKey 字段 —— 
+    dataPred.forEach(d => {
       // high_bmi = 1 当 BMI >= 25，否则 0
       d.high_bmi = d.bmi >= 25 ? 1 : 0;
 
       // smoker = 1 当 smoking_history 不是 "never"/"no"（忽略大小写）时，否则 0
-      const sh = d.smoking_history.trim().toLowerCase();
+      const sh = d.smoking_history.toLowerCase();
       d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
 
-      // 生成一个“组合键”字符串，用于后续映射颜色
+      // comboKey 用于后续组合着色
       d.comboKey = `${d.hypertension}-${d.heart_disease}-${d.smoker}-${d.high_bmi}`;
     });
 
-    // 先绘制其他已有的图表（直方图、Violin+Box、风险曲线）
-    drawHistogram(rawData);
-    drawAgeViolinGenderBox(rawData);
-    drawRiskCurve(rawData);
+    // —— 接下来用 dataWithHb 来绘制前三个图表 —— 
+    drawHistogram(dataWithHb);
+    drawAgeViolinGenderBox(dataWithHb);
+    drawRiskCurve(dataWithHb);
 
-    // 再绘制新的“多重风险因子组合着色散点图”
-    drawComboScatter(rawData);
+    // —— 最后用 dataPred 来绘制“组合着色散点图” —— 
+    drawComboScatter(dataPred);
   })
   .catch(err => {
-    console.error('加载 diabetes_prediction_dataset.csv 出错：', err);
+    console.error('读取 CSV 出错：', err);
   });
 
-  // 初始化轮播（Carousel）
+  // —— 初始化轮播（Carousel） —— 
   const slides = document.querySelectorAll('.carousel .slide');
   let currentIndex = 0;
   const slideCount = slides.length;
@@ -66,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /* =========================================================================
-   1. 人群 HbA1c 分布 —— 动态直方图
+   1. 人群 HbA1c 分布 —— 动态直方图（使用 dataWithHb）
    ========================================================================= */
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
@@ -82,9 +97,9 @@ function drawHistogram(data) {
 
   // 各分类数据
   const dataAll = data;
-  const dataNormal = data.filter(d => d.hbA1c < 5.7);
-  const dataPre = data.filter(d => d.hbA1c >= 5.7 && d.hbA1c < 6.5);
-  const dataDia = data.filter(d => d.hbA1c >= 6.5);
+  const dataNormal = data.filter(d => d.status === 'normal');
+  const dataPre = data.filter(d => d.status === 'prediabetes');
+  const dataDia = data.filter(d => d.status === 'diabetes');
 
   // x 轴刻度范围
   const xDomain = [
@@ -190,7 +205,7 @@ function drawHistogram(data) {
 
 
 /* =========================================================================
-   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
+   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图（使用 dataWithHb）
    ========================================================================= */
 function drawAgeViolinGenderBox(data) {
   // 过滤出需要的四个年龄组（0-20, 20-40, 40-60, 60-80）
@@ -199,7 +214,6 @@ function drawAgeViolinGenderBox(data) {
   const ageGrouped = {};
   ageBins.forEach(bin => ageGrouped[bin] = []);
   data.forEach(d => {
-    // 根据 d.ageGroup 已经在最开始添加
     if (ageGrouped[d.ageGroup] !== undefined) {
       ageGrouped[d.ageGroup].push(d.hbA1c);
     }
@@ -298,7 +312,7 @@ function drawAgeViolinGenderBox(data) {
       const center = x(group.bin) + x.bandwidth() / 2;
       const grp = svg.append('g');
 
-      // 双边小提琴：先右半部分
+      // 右半部分
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -445,7 +459,7 @@ function drawAgeViolinGenderBox(data) {
 
 
 /* =========================================================================
-   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
+   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点（使用 dataWithHb）
    ========================================================================= */
 function drawRiskCurve(data) {
   // 先获取数据中 HbA1c 的最小、最大值，用于滑块上下限
@@ -593,7 +607,7 @@ function drawRiskCurve(data) {
 
 
 /* =========================================================================
-   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条）
+   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条，使用 dataPred）
    ========================================================================= */
 function drawComboScatter(data) {
   // —— 1. 只保留前 2000 条数据 —— 

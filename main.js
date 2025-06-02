@@ -1,75 +1,50 @@
 // main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-  // —— 同时用 Promise.all 读取两个 CSV —— 
-  // 1) diabetes_with_HbA1c.csv : 包含 age, gender, diabetes, HbA1c_level 等，
-  //    用来画直方图、Violin+Box、风险曲线。
-  // 2) diabetes_prediction_dataset.csv : 包含 hypertension, heart_disease,
-  //    smoking_history, bmi, HbA1c_level 等，用来做组合着色散点图。
+  // 同时读取两个 CSV：
+  // 1) diabetes_with_HbA1c.csv：包含 hypertension, heart_disease, smoking_history, bmi, HbA1c_level, diabetes 等，用于组合着色散点图
+  // 2) diabetes_prediction_dataset.csv：包含 age, gender, HbA1c_level, diabetes 等，用于直方图、Violin+Box、风险曲线
 
   Promise.all([
     d3.csv('data/diabetes_with_HbA1c.csv', d => ({
-      age: +d.age,
-      gender: d.gender,
-      hbA1c: +d.HbA1c_level,
-      diabetes: +d.diabetes
-      // 如果这个 CSV 里还有别的字段，也可以在这里继续映射
-    })),
-    d3.csv('data/diabetes_prediction_dataset.csv', d => ({
       hypertension: +d.hypertension,
       heart_disease: +d.heart_disease,
       smoking_history: d.smoking_history.trim(),
       bmi: +d.bmi,
       hbA1c: +d.HbA1c_level,
       diabetes: +d.diabetes
-      // 这里只保留了这个 CSV 中真正用到的字段
+    })),
+    d3.csv('data/diabetes_prediction_dataset.csv', d => ({
+      age: +d.age,
+      gender: d.gender,
+      hbA1c: +d.HbA1c_level,
+      diabetes: +d.diabetes
     }))
-  ]).then(([dataWithHb, dataPred]) => {
-    // —— 先处理 dataWithHb，给它补充 status 和 ageGroup 字段 —— 
-    dataWithHb.forEach(d => {
-      // 根据 HbA1c 划分“状态”
-      if (d.hbA1c < 5.7) d.status = 'normal';
-      else if (d.hbA1c < 6.5) d.status = 'prediabetes';
-      else d.status = 'diabetes';
-
-      // 根据年龄划分“年龄组”
-      if (d.age <= 20) d.ageGroup = '0–20';
-      else if (d.age <= 40) d.ageGroup = '20–40';
-      else if (d.age <= 60) d.ageGroup = '40–60';
-      else if (d.age <= 80) d.ageGroup = '60–80';
-      else d.ageGroup = 'Other';
-    });
-
-    // —— 然后处理 dataPred，给它补充 high_bmi, smoker, comboKey 字段 —— 
-    dataPred.forEach(d => {
-      // high_bmi = 1 当 BMI >= 25，否则 0
+  ])
+  .then(([comboData, distData]) => {
+    // 为 comboData 添加 high_bmi, smoker, comboKey
+    comboData.forEach(d => {
       d.high_bmi = d.bmi >= 25 ? 1 : 0;
-
-      // smoker = 1 当 smoking_history 不是 "never"/"no"（忽略大小写）时，否则 0
       const sh = d.smoking_history.toLowerCase();
       d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
-
-      // comboKey 用于后续组合着色
       d.comboKey = `${d.hypertension}-${d.heart_disease}-${d.smoker}-${d.high_bmi}`;
     });
 
-    // —— 接下来用 dataWithHb 来绘制前三个图表 —— 
-    drawHistogram(dataWithHb);
-    drawAgeViolinGenderBox(dataWithHb);
-    drawRiskCurve(dataWithHb);
-
-    // —— 最后用 dataPred 来绘制“组合着色散点图” —— 
-    drawComboScatter(dataPred);
+    // 绘制各可视化
+    drawHistogram(distData);
+    drawAgeViolinGenderBox(distData);
+    drawRiskCurve(distData);
+    drawComboScatter(comboData);
   })
   .catch(err => {
     console.error('读取 CSV 出错：', err);
   });
 
-  // —— 初始化轮播（Carousel） —— 
+  // 初始化轮播
   const slides = document.querySelectorAll('.carousel .slide');
   let currentIndex = 0;
   const slideCount = slides.length;
-  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
+  const intervalTime = 3000;
   if (slideCount > 1) {
     setInterval(() => {
       slides[currentIndex].classList.remove('active');
@@ -79,9 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
 /* =========================================================================
-   1. 人群 HbA1c 分布 —— 动态直方图（使用 dataWithHb）
+   1. 人群 HbA1c 分布 —— 动态直方图
    ========================================================================= */
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
@@ -95,13 +69,11 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 各分类数据
   const dataAll = data;
-  const dataNormal = data.filter(d => d.status === 'normal');
-  const dataPre = data.filter(d => d.status === 'prediabetes');
-  const dataDia = data.filter(d => d.status === 'diabetes');
+  const dataNormal = data.filter(d => d.hbA1c < 5.7);
+  const dataPre = data.filter(d => d.hbA1c >= 5.7 && d.hbA1c < 6.5);
+  const dataDia = data.filter(d => d.hbA1c >= 6.5);
 
-  // x 轴刻度范围
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
@@ -110,7 +82,6 @@ function drawHistogram(data) {
     .domain(xDomain)
     .range([0, width]);
 
-  // histogram 生成器
   const histogramGen = d3.histogram()
     .value(d => d.hbA1c)
     .domain(x.domain())
@@ -121,29 +92,23 @@ function drawHistogram(data) {
   const binsPre = histogramGen(dataPre);
   const binsDia = histogramGen(dataDia);
 
-  // 初始使用所有数据的 bins
   let currentBins = binsAll;
 
-  // y 轴 scale
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // 绘制 x 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // 绘制 y 轴
   const yAxis = svg.append('g')
     .call(d3.axisLeft(y));
 
-  // Tooltip
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 创建初始矩形（柱子）
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
@@ -154,7 +119,6 @@ function drawHistogram(data) {
     .attr('height', 0)
     .attr('fill', '#69b3a2');
 
-  // 鼠标交互
   rects
     .on('mouseover', function (event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
@@ -169,13 +133,11 @@ function drawHistogram(data) {
       tooltip.style('opacity', 0);
     });
 
-  // 初始过渡：让柱子“从底部长出”
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // 分类顺序循环：all → normal → prediabetes → diabetes → all
   const categories = [
     { name: 'all', bins: binsAll },
     { name: 'normal', bins: binsNor },
@@ -189,7 +151,6 @@ function drawHistogram(data) {
     updateHistogram(categories[idx].bins);
   }, 2500);
 
-  // 更新函数：更新 y 轴和柱子高度
   function updateHistogram(nextBins) {
     y.domain([0, d3.max(nextBins, d => d.length)]).nice();
     yAxis.transition().duration(800).call(d3.axisLeft(y));
@@ -203,23 +164,26 @@ function drawHistogram(data) {
   }
 }
 
-
 /* =========================================================================
-   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图（使用 dataWithHb）
+   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
    ========================================================================= */
 function drawAgeViolinGenderBox(data) {
-  // 过滤出需要的四个年龄组（0-20, 20-40, 40-60, 60-80）
   const ageBins = ['0–20', '20–40', '40–60', '60–80'];
-  // 准备每个年龄段的 HbA1c 数组
   const ageGrouped = {};
   ageBins.forEach(bin => ageGrouped[bin] = []);
+
   data.forEach(d => {
+    if (d.age <= 20) d.ageGroup = '0–20';
+    else if (d.age <= 40) d.ageGroup = '20–40';
+    else if (d.age <= 60) d.ageGroup = '40–60';
+    else if (d.age <= 80) d.ageGroup = '60–80';
+    else d.ageGroup = 'Other';
+
     if (ageGrouped[d.ageGroup] !== undefined) {
       ageGrouped[d.ageGroup].push(d.hbA1c);
     }
   });
 
-  // Gender 分组
   const genderBins = ['Male', 'Female'];
   const genderGrouped = { 'Male': [], 'Female': [] };
   data.forEach(d => {
@@ -228,7 +192,7 @@ function drawAgeViolinGenderBox(data) {
     }
   });
 
-  // 1) 绘制小提琴图（Age Violin Plot）
+  // —— 绘制小提琴图 —— 
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
@@ -241,19 +205,16 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：年龄组
     const x = d3.scaleBand()
       .domain(ageBins)
       .range([0, width])
       .padding(0.4);
 
-    // y 轴：HbA1c 范围
-    const allHbA1c = data.map(d => d.hbA1c);
+    const allHb = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
-      .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
+      .domain([d3.min(allHb) - 0.2, d3.max(allHb) + 0.2])
       .range([height, 0]);
 
-    // 绘制坐标轴
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
@@ -272,7 +233,6 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // Kernel Density Estimator 函数
     function kernelDensityEstimator(kernel, X) {
       return function (V) {
         return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -285,8 +245,7 @@ function drawAgeViolinGenderBox(data) {
       };
     }
 
-    // 为每个年龄组计算密度
-    const xTicks = d3.range(d3.min(allHbA1c), d3.max(allHbA1c) + 0.1, 0.1);
+    const xTicks = d3.range(d3.min(allHb), d3.max(allHb) + 0.1, 0.1);
     const allDensities = [];
     ageBins.forEach(bin => {
       const values = ageGrouped[bin];
@@ -299,20 +258,15 @@ function drawAgeViolinGenderBox(data) {
       }
     });
 
-    // 找到最大的密度值，用于缩放
     const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]) || 0);
-
-    // 用来绘制小提琴图的水平尺度
     const xNum = d3.scaleLinear()
       .domain([0, maxDensity])
       .range([0, x.bandwidth() / 2]);
 
-    // 绘制每个小提琴
     allDensities.forEach(group => {
       const center = x(group.bin) + x.bandwidth() / 2;
       const grp = svg.append('g');
 
-      // 右半部分
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -325,7 +279,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke-width', 1)
         .attr('opacity', 0.6);
 
-      // 左半部分
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -340,11 +293,11 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 
-  // 2) 绘制性别箱线图（Gender Box Plot）
+  // —— 绘制性别箱线图 —— 
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
-    const height = 350 - margin.top - margin.bottom; // 与小提琴图保持相同高度
+    const height = 350 - margin.top - margin.bottom;
 
     const svg = d3.select('#genderBoxPlot')
       .append('svg')
@@ -353,19 +306,16 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：Gender
     const x = d3.scaleBand()
       .domain(genderBins)
       .range([0, width])
       .padding(0.4);
 
-    // y 轴：HbA1c 范围，与上面一致
-    const allHbA1c = data.map(d => d.hbA1c);
+    const allHb = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
-      .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
+      .domain([d3.min(allHb) - 0.2, d3.max(allHb) + 0.2])
       .range([height, 0]);
 
-    // 绘制坐标轴
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
@@ -384,7 +334,6 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // 准备将每个性别组排序并计算箱线图所需的五数概括
     const boxData = [];
     genderBins.forEach(gen => {
       const values = genderGrouped[gen].sort(d3.ascending);
@@ -397,12 +346,10 @@ function drawAgeViolinGenderBox(data) {
       boxData.push({ gender: gen, q1, median, q3, lowerWhisker, upperWhisker });
     });
 
-    // 绘制每个箱线
     const boxWidth = x.bandwidth() * 0.5;
     boxData.forEach(d => {
       const cx = x(d.gender) + x.bandwidth() / 2;
 
-      // 箱体
       svg.append('rect')
         .attr('x', cx - boxWidth / 2)
         .attr('y', y(d.q3))
@@ -413,7 +360,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 1);
 
-      // 中位数线
       svg.append('line')
         .attr('x1', cx - boxWidth / 2)
         .attr('x2', cx + boxWidth / 2)
@@ -422,7 +368,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 2);
 
-      // 须线（上下）
       svg.append('line')
         .attr('x1', cx)
         .attr('x2', cx)
@@ -438,7 +383,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 1);
 
-      // 须端
       svg.append('line')
         .attr('x1', cx - boxWidth / 4)
         .attr('x2', cx + boxWidth / 4)
@@ -457,17 +401,14 @@ function drawAgeViolinGenderBox(data) {
   }
 }
 
-
 /* =========================================================================
-   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点（使用 dataWithHb）
+   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
    ========================================================================= */
 function drawRiskCurve(data) {
-  // 先获取数据中 HbA1c 的最小、最大值，用于滑块上下限
-  const allHbValues = data.map(d => d.hbA1c);
-  const minHb = d3.min(allHbValues);
-  const maxHb = d3.max(allHbValues);
+  const allHb = data.map(d => d.hbA1c);
+  const minHb = d3.min(allHb);
+  const maxHb = d3.max(allHb);
 
-  // 设置滑块属性
   const hbSlider = d3.select('#hbSlider')
     .attr('min', minHb.toFixed(1))
     .attr('max', maxHb.toFixed(1))
@@ -475,27 +416,21 @@ function drawRiskCurve(data) {
 
   d3.select('#thresholdValue').text(minHb.toFixed(1));
 
-  // 生成一系列阈值（0.1 步长）
   const thresholds = d3.range(minHb, maxHb + 0.0001, 0.1).map(d => +d.toFixed(1));
 
-  // 计算每个阈值下的“糖尿病比例”
   const proportionData = thresholds.map(thr => {
     const subset = data.filter(d => d.hbA1c >= thr);
-    if (subset.length === 0) {
-      return { threshold: thr, prop: 0 };
-    }
+    if (subset.length === 0) return { threshold: thr, prop: 0 };
     const countDi = subset.filter(d => d.diabetes === 1).length;
     return { threshold: thr, prop: countDi / subset.length };
   });
 
-  // 准备 SVG 尺寸
   const margin = { top: 20, right: 30, bottom: 40, left: 60 };
   const svgWidth = 500;
   const svgHeight = 350;
   const chartWidth = svgWidth - margin.left - margin.right;
   const chartHeight = svgHeight - margin.top - margin.bottom;
 
-  // 清空容器
   d3.select('#riskBar').selectAll('*').remove();
 
   const svg = d3.select('#riskBar')
@@ -505,26 +440,21 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴比例尺：阈值 → 像素
   const xScale = d3.scaleLinear()
     .domain([minHb, maxHb])
     .range([0, chartWidth]);
 
-  // y 轴比例尺：比例 0–1 → 像素
   const yScale = d3.scaleLinear()
     .domain([0, 1])
     .range([chartHeight, 0]);
 
-  // 绘制 x 轴
   svg.append('g')
     .attr('transform', `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xScale).ticks(6));
 
-  // 绘制 y 轴
   svg.append('g')
     .call(d3.axisLeft(yScale).tickFormat(d3.format('.0%')).ticks(5));
 
-  // x 轴标签
   svg.append('text')
     .attr('x', chartWidth / 2)
     .attr('y', chartHeight + margin.bottom - 5)
@@ -532,7 +462,6 @@ function drawRiskCurve(data) {
     .attr('font-size', '14px')
     .text('HbA1c Threshold');
 
-  // y 轴标签
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -chartHeight / 2)
@@ -541,7 +470,6 @@ function drawRiskCurve(data) {
     .attr('font-size', '14px')
     .text('Proportion of Diabetes');
 
-  // 绘制折线
   const line = d3.line()
     .x(d => xScale(d.threshold))
     .y(d => yScale(d.prop))
@@ -554,7 +482,6 @@ function drawRiskCurve(data) {
     .attr('stroke-width', 2)
     .attr('d', line);
 
-  // 绘制一个初始的“活动圆点”在最小阈值处
   const activePoint = svg.append('circle')
     .attr('cx', xScale(minHb))
     .attr('cy', yScale(proportionData[0].prop))
@@ -563,7 +490,6 @@ function drawRiskCurve(data) {
     .attr('stroke', '#cc6600')
     .attr('stroke-width', 1.5);
 
-  // 在圆点旁边显示百分比文本
   const percentText = svg.append('text')
     .attr('x', xScale(minHb))
     .attr('y', yScale(proportionData[0].prop) - 10)
@@ -572,17 +498,13 @@ function drawRiskCurve(data) {
     .attr('fill', '#333')
     .text((proportionData[0].prop * 100).toFixed(1) + '%');
 
-  // 定义更新函数：当滑块变化时，移动圆点并更新文本
   function updateActivePoint(thr) {
-    // 四舍五入到 1 位小数
     const t = +thr.toFixed(1);
-    // 找到对应条目的 index
     const idx = proportionData.findIndex(d => d.threshold === t);
     if (idx < 0) return;
-
-    const yValue = proportionData[idx].prop;
+    const yVal = proportionData[idx].prop;
     const xPos = xScale(t);
-    const yPos = yScale(yValue);
+    const yPos = yScale(yVal);
 
     activePoint.transition().duration(200)
       .attr('cx', xPos)
@@ -591,33 +513,27 @@ function drawRiskCurve(data) {
     percentText.transition().duration(200)
       .attr('x', xPos)
       .attr('y', yPos - 10)
-      .text((yValue * 100).toFixed(1) + '%');
+      .text((yVal * 100).toFixed(1) + '%');
   }
 
-  // 初始绘制
   updateActivePoint(minHb);
 
-  // 监听滑块变化
-  hbSlider.on('input', function () {
+  hbSlider.on('input', function() {
     const curVal = +this.value;
     d3.select('#thresholdValue').text(curVal.toFixed(1));
     updateActivePoint(curVal);
   });
 }
 
-
 /* =========================================================================
-   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条，使用 dataPred）
+   4. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条）
    ========================================================================= */
 function drawComboScatter(data) {
-  // —— 1. 只保留前 2000 条数据 —— 
   const plotData = data.slice(0, 2000);
 
-  // —— 2. 清空上一次的 SVG 及 Tooltip —— 
   d3.select('#comboScatter').selectAll('*').remove();
   d3.selectAll('.tooltip').remove();
 
-  // —— 3. 设置 margin 和 SVG 大小 —— 
   const margin = { top: 40, right: 180, bottom: 60, left: 60 };
   const container = document.getElementById('comboScatter');
   const containerWidth = container.clientWidth;
@@ -625,7 +541,6 @@ function drawComboScatter(data) {
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // —— 4. 创建 SVG 画布 —— 
   const svg = d3.select('#comboScatter')
     .append('svg')
     .attr('width', containerWidth)
@@ -633,29 +548,24 @@ function drawComboScatter(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // —— 5. X 轴刻度：BMI（仅基于 plotData） —— 
   const xMin = d3.min(plotData, d => d.bmi) - 1;
   const xMax = d3.max(plotData, d => d.bmi) + 1;
   const xScale = d3.scaleLinear()
     .domain([xMin, xMax])
     .range([0, width]);
 
-  // —— 6. Y 轴刻度：HbA1c（仅基于 plotData） —— 
   const yMin = d3.min(plotData, d => d.hbA1c) - 0.2;
   const yMax = d3.max(plotData, d => d.hbA1c) + 0.2;
   const yScale = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
 
-  // —— 7. 绘制 X 轴 —— 
   svg.append('g')
     .attr('transform', `translate(0, ${height})`)
     .call(d3.axisBottom(xScale).ticks(8));
-  // —— 8. 绘制 Y 轴 —— 
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
 
-  // —— 9. X 轴标签 —— 
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + 40)
@@ -663,7 +573,6 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('BMI');
 
-  // —— 10. Y 轴标签 —— 
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -height / 2)
@@ -672,20 +581,15 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('HbA1c (%)');
 
-  // —— 11. 创建 Tooltip 容器 —— 
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // —— 12. 提取 plotData 中所有不重复的 comboKey —— 
   const uniqueCombos = Array.from(new Set(plotData.map(d => d.comboKey)));
-
-  // —— 13. 为每个 comboKey 分配一种颜色 —— 
   const colorScale = d3.scaleOrdinal()
     .domain(uniqueCombos)
     .range(uniqueCombos.map((_, i) => d3.interpolateRainbow(i / (uniqueCombos.length - 1))));
 
-  // —— 14. 绘制散点 —— 
   svg.selectAll('.dot')
     .data(plotData)
     .enter()
@@ -697,13 +601,11 @@ function drawComboScatter(data) {
     .attr('fill', d => colorScale(d.comboKey))
     .attr('opacity', 0.75)
     .on('mouseover', function(event, d) {
-      // 鼠标悬停时放大并加边框
       d3.select(this)
         .attr('r', 6)
         .attr('stroke', '#333')
         .attr('stroke-width', 1);
 
-      // 构造并显示 tooltip 文本
       const textHtml = `
         <strong>Hypertension:</strong> ${d.hypertension === 1 ? 'Yes' : 'No'}<br>
         <strong>Heart Disease:</strong> ${d.heart_disease === 1 ? 'Yes' : 'No'}<br>
@@ -718,14 +620,12 @@ function drawComboScatter(data) {
         .style('opacity', 1);
     })
     .on('mouseout', function() {
-      // 鼠标移出时复原
       d3.select(this)
         .attr('r', 4)
         .attr('stroke', 'none');
       tooltip.style('opacity', 0);
     });
 
-  // —— 15. 在右侧绘制图例（Legend） —— 
   const legend = svg.append('g')
     .attr('class', 'legend')
     .attr('transform', `translate(${width + 20}, 0)`);
@@ -734,7 +634,6 @@ function drawComboScatter(data) {
     const row = legend.append('g')
       .attr('transform', `translate(0, ${i * 20})`);
 
-    // 颜色方块
     row.append('rect')
       .attr('width', 14)
       .attr('height', 14)
@@ -742,7 +641,6 @@ function drawComboScatter(data) {
       .attr('stroke', '#555')
       .attr('stroke-width', 0.5);
 
-    // 将 "0-1-0-1" 转成可读标签 "HT:N, HD:Y, SM:N, HB:Y"
     const parts = key.split('-').map(Number);
     const labelText =
       `HT:${parts[0] === 1 ? 'Y' : 'N'}, ` +

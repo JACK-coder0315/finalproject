@@ -1,16 +1,30 @@
 // main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 读取原始 Kaggle 数据，字段包括：hypertension, heart_disease, smoking_history, bmi, HbA1c_level, 等
-  d3.csv('data/diabetes_prediction_dataset.csv', d => ({
-    hypertension: +d.hypertension,    // 0 或 1
-    heart_disease: +d.heart_disease,  // 0 或 1
-    smoking_history: d.smoking_history, // 字符串
-    bmi: +d.bmi,                      // 数值
-    hbA1c: +d.HbA1c_level,            // 数值
-    // 其余字段可以忽略
-  }))
-  .then(rawData => {
+  // —— 同时用 Promise.all 读取两个 CSV —— 
+  // 1) diabetes_with_HbA1c.csv : 包含 age, gender, diabetes, HbA1c_level 等，
+  //    用来画直方图、Violin+Box、风险曲线。
+  // 2) diabetes_prediction_dataset.csv : 包含 hypertension, heart_disease,
+  //    smoking_history, bmi, HbA1c_level 等，用来做组合着色散点图。
+
+  Promise.all([
+    d3.csv('data/diabetes_with_HbA1c.csv', d => ({
+      age: +d.age,
+      gender: d.gender,
+      hbA1c: +d.HbA1c_level,
+      diabetes: +d.diabetes
+      // 如果这个 CSV 里还有别的字段，也可以在这里继续映射
+    })),
+    d3.csv('data/diabetes_prediction_dataset.csv', d => ({
+      hypertension: +d.hypertension,
+      heart_disease: +d.heart_disease,
+      smoking_history: d.smoking_history.trim(),
+      bmi: +d.bmi,
+      hbA1c: +d.HbA1c_level,
+      diabetes: +d.diabetes
+      // 这里只保留了这个 CSV 中真正用到的字段
+    }))
+  ]).then(([dataWithHb, dataPred]) => {
     // 在每条记录上添加两个新的二元字段：high_bmi, smoker
     rawData.forEach(d => {
       // high_bmi = 1 当 BMI >= 25，否则 0

@@ -653,7 +653,7 @@ function drawCasePlot(data, variableKey) {
   // —— 2. 选择要绘制的点数 —— 
   // 如果要展示全部点，可把下面这行改为： const plotData = data;
   // 但为了性能，我们这里保留前 5000 条：
-  const plotData = data.slice(0, 5000);
+  const plotData = data.slice(0, 200);
 
   // —— 3. 设置 margin 和 容器大小 —— 
   const margin = { top: 40, right: 150, bottom: 60, left: 60 };

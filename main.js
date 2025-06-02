@@ -1,65 +1,59 @@
 // main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ────── 1) Load both CSV files in parallel ──────
+  // —— 同时用 Promise.all 读取两个 CSV —— 
+  // 1) diabetes_with_HbA1c.csv : 包含 Age, Sex, HbA1c, Diabetes_012 等，
+  //    用来画 “HbA1c by Age Group & Gender”。
+  // 2) diabetes_prediction_dataset.csv : 包含 hypertension, heart_disease,
+  //    smoking_history, bmi, HbA1c_level, diabetes 等，
+  //    用来画 其他三个可视化（Population‐Level Distribution、Threshold vs. Proportion、Scatter）。
+
   Promise.all([
-    // CSV 1: diabetes_prediction_dataset.csv (for the multi-factor scatter)
-    d3.csv('data/diabetes_prediction_dataset.csv', d => ({
-      hypertension: +d.hypertension,        // 0 or 1
-      heart_disease: +d.heart_disease,      // 0 or 1
-      smoking_history: d.smoking_history.trim(), // string
-      bmi: +d.bmi,                          // number
-      hbA1c: +d.HbA1c_level,                // number
-      diabetes: +d.diabetes                 // 0 or 1 (not used in scatter, but parsed anyway)
-    })),
-    // CSV 2: diabetes_with_HbA1c.csv (for histogram / violin+box / risk curve)
     d3.csv('data/diabetes_with_HbA1c.csv', d => ({
-      age: +d.age,                         // number
-      gender: d.gender,                    // "Male" or "Female"
-      hbA1c: +d.HbA1c_level,               // number
-      diabetes: +d.diabetes                // 0 or 1
+      age:      +d.Age,                               // 原始 CSV 中列名为 "Age"
+      gender:   d.Sex,                                // 原始 CSV 中列名为 "Sex"
+      hbA1c:    +d.HbA1c,                             // 原始 CSV 中列名为 "HbA1c"
+      diabetes: (+d.Diabetes_012 === 2 ? 1 : 0)       // “Diabetes_012” 中 2 表示糖尿病
+    })),
+    d3.csv('data/diabetes_prediction_dataset.csv', d => ({
+      hypertension:  +d.hypertension,                // 0/1
+      heart_disease: +d.heart_disease,               // 0/1
+      smoking_history: d.smoking_history.trim(),     // 字符串
+      bmi:           +d.bmi,                         // 数值
+      hbA1c:         +d.HbA1c_level,                 // 数值，对应列 "HbA1c_level"
+      diabetes:      +d.diabetes                     // 0/1
     }))
   ])
-    .then(([predData, hbData]) => {
-      // ────── 2) Preprocess the second dataset (hbData) for age groups ──────
-      hbData.forEach(d => {
-        if (d.age <= 20) d.ageGroup = '0–20';
-        else if (d.age <= 40) d.ageGroup = '20–40';
-        else if (d.age <= 60) d.ageGroup = '40–60';
-        else if (d.age <= 80) d.ageGroup = '60–80';
-        else d.ageGroup = 'Other';
-      });
-
-      // ────── 3) Draw the first three plots using hbData ──────
-      drawHistogram(hbData);
-      drawAgeViolinGenderBox(hbData);
-      drawRiskCurve(hbData);
-
-      // ────── 4) Preprocess predData for the combo scatter ──────
-      predData.forEach(d => {
-        // high_bmi = 1 when BMI ≥ 25
-        d.high_bmi = d.bmi >= 25 ? 1 : 0;
-
-        // smoker = 1 when smoking_history is not "never"/"no" (ignoring case)
-        const sh = d.smoking_history.toLowerCase();
-        d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
-
-        // Build a 4-factor combo key (e.g. "1-0-1-0")
-        d.comboKey = `${d.hypertension}-${d.heart_disease}-${d.smoker}-${d.high_bmi}`;
-      });
-
-      // ────── 5) Draw the combo scatter (first 2000 rows only) ──────
-      drawComboScatter(predData);
-    })
-    .catch(err => {
-      console.error('Error loading CSV files:', err);
+  .then(([dataWithHb, dataPred]) => {
+    // —— 在 dataPred 每条记录上添加 high_bmi, smoker, comboKey —— 
+    dataPred.forEach(d => {
+      d.high_bmi = d.bmi >= 25 ? 1 : 0;
+      const sh = d.smoking_history.trim().toLowerCase();
+      d.smoker = (sh === 'never' || sh === 'no') ? 0 : 1;
+      d.comboKey = `${d.hypertension}-${d.heart_disease}-${d.smoker}-${d.high_bmi}`;
     });
 
-  // ────── 6) Initialize the carousel (if you still have it) ──────
+    // —— 1) 用 dataPred 画 Population‐Level HbA1c Distribution —— 
+    drawHistogram(dataPred);
+
+    // —— 2) 用 dataWithHb 画 HbA1c by Age Group & Gender （小提琴图 + 箱线图）—— 
+    drawAgeViolinGenderBox(dataWithHb);
+
+    // —— 3) 用 dataPred 画 HbA1c Threshold vs. Diabetes Proportion —— 
+    drawRiskCurve(dataPred);
+
+    // —— 4) 用 dataPred 画 “BMI vs. HbA1c” 多重风险因子散点图 —— 
+    drawComboScatter(dataPred);
+  })
+  .catch(err => {
+    console.error('读取 CSV 出错：', err);
+  });
+
+  // 初始化轮播（Carousel）
   const slides = document.querySelectorAll('.carousel .slide');
   let currentIndex = 0;
   const slideCount = slides.length;
-  const intervalTime = 3000; // 3 seconds
+  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
   if (slideCount > 1) {
     setInterval(() => {
       slides[currentIndex].classList.remove('active');
@@ -70,18 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
 /* =========================================================================
-   1. Population-Level HbA1c Distribution (Histogram)
-   Data input: hbData  (from diabetes_with_HbA1c.csv)
-   Container ID: #histogram
+   1. 人群 HbA1c 分布 —— 动态直方图（使用 dataPred）
    ========================================================================= */
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
   const width = 800 - margin.left - margin.right;
   const height = 350 - margin.top - margin.bottom;
 
-  // Create SVG
   const svg = d3.select('#histogram')
     .append('svg')
     .attr('width', width + margin.left + margin.right)
@@ -89,20 +79,20 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // Split data into normal / prediabetes / diabetes categories
-  const dataAll = data;
-  const dataNormal = data.filter(d => d.hbA1c < 5.7);
-  const dataPre = data.filter(d => d.hbA1c >= 5.7 && d.hbA1c < 6.5);
-  const dataDia = data.filter(d => d.hbA1c >= 6.5);
+  // 各分类数据（基于 data.hhA1c）
+  const dataAll   = data;
+  const dataNormal= data.filter(d => d.hbA1c < 5.7);
+  const dataPre   = data.filter(d => d.hbA1c >= 5.7 && d.hbA1c < 6.5);
+  const dataDia   = data.filter(d => d.hbA1c >= 6.5);
 
-  // X-scale: HbA1c range
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
   ];
-  const x = d3.scaleLinear().domain(xDomain).range([0, width]);
+  const x = d3.scaleLinear()
+    .domain(xDomain)
+    .range([0, width]);
 
-  // Histogram generator
   const histogramGen = d3.histogram()
     .value(d => d.hbA1c)
     .domain(x.domain())
@@ -113,26 +103,23 @@ function drawHistogram(data) {
   const binsPre = histogramGen(dataPre);
   const binsDia = histogramGen(dataDia);
 
-  // Initial bins = all
   let currentBins = binsAll;
 
-  // Y-scale: counts
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // Render axes
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
-  const yAxisG = svg.append('g').call(d3.axisLeft(y));
 
-  // Tooltip container
+  const yAxis = svg.append('g')
+    .call(d3.axisLeft(y));
+
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // Create initial bars (height zero → will animate in)
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
@@ -143,9 +130,8 @@ function drawHistogram(data) {
     .attr('height', 0)
     .attr('fill', '#69b3a2');
 
-  // Mouse interactions
   rects
-    .on('mouseover', function (event, d) {
+    .on('mouseover', function(event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
       tooltip
         .html(`Range: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>Count: ${d.length}`)
@@ -153,23 +139,21 @@ function drawHistogram(data) {
         .style('top', (event.pageY - 30) + 'px')
         .style('opacity', 1);
     })
-    .on('mouseout', function () {
+    .on('mouseout', function() {
       d3.select(this).attr('fill', '#69b3a2');
       tooltip.style('opacity', 0);
     });
 
-  // Animate bars up from zero
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // Cycle through bins: all → normal → prediabetes → diabetes → all …
   const categories = [
-    { name: 'all', bins: binsAll },
-    { name: 'normal', bins: binsNor },
-    { name: 'prediabetes', bins: binsPre },
-    { name: 'diabetes', bins: binsDia }
+    { name: 'all',        bins: binsAll },
+    { name: 'normal',     bins: binsNor },
+    { name: 'prediabetes',bins: binsPre },
+    { name: 'diabetes',   bins: binsDia }
   ];
   let idx = 0;
 
@@ -180,7 +164,7 @@ function drawHistogram(data) {
 
   function updateHistogram(nextBins) {
     y.domain([0, d3.max(nextBins, d => d.length)]).nice();
-    yAxisG.transition().duration(800).call(d3.axisLeft(y));
+    yAxis.transition().duration(800).call(d3.axisLeft(y));
 
     svg.selectAll('rect')
       .data(nextBins)
@@ -192,24 +176,21 @@ function drawHistogram(data) {
 }
 
 
-
 /* =========================================================================
-   2. Age & Gender Analysis (Violin Plot + Box Plot)
-   Data input: hbData (from diabetes_with_HbA1c.csv)
-   Container IDs: #violinPlot  and  #genderBoxPlot
+   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图（使用 dataWithHb）
    ========================================================================= */
 function drawAgeViolinGenderBox(data) {
-  // Filter only our four age groups
+  // 过滤出需要的四个年龄组（0–20, 20–40, 40–60, 60–80）
   const ageBins = ['0–20', '20–40', '40–60', '60–80'];
   const ageGrouped = {};
   ageBins.forEach(bin => (ageGrouped[bin] = []));
   data.forEach(d => {
-    if (ageGrouped[d.ageGroup] !== undefined) {
-      ageGrouped[d.ageGroup].push(d.hbA1c);
-    }
+    if      (d.age <= 20) ageGrouped['0–20'].push(d.hbA1c);
+    else if (d.age <= 40) ageGrouped['20–40'].push(d.hbA1c);
+    else if (d.age <= 60) ageGrouped['40–60'].push(d.hbA1c);
+    else if (d.age <= 80) ageGrouped['60–80'].push(d.hbA1c);
   });
 
-  // Gender groups
   const genderBins = ['Male', 'Female'];
   const genderGrouped = { 'Male': [], 'Female': [] };
   data.forEach(d => {
@@ -218,7 +199,7 @@ function drawAgeViolinGenderBox(data) {
     }
   });
 
-  // —— 2.1 Violin Plot (Age groups) ——
+  // —— 绘制小提琴图（Age Violin）—— 
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
@@ -231,26 +212,21 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // X-scale: age groups
     const x = d3.scaleBand()
       .domain(ageBins)
       .range([0, width])
       .padding(0.4);
 
-    // Y-scale: HbA1c range
     const allHbA1c = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
       .range([height, 0]);
 
-    // Render axes
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
-    svg.append('g')
-      .call(d3.axisLeft(y));
+    svg.append('g').call(d3.axisLeft(y));
 
-    // Axis labels
     svg.append('text')
       .attr('x', width / 2)
       .attr('y', height + margin.bottom - 5)
@@ -263,40 +239,40 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // Kernel Density Estimator helpers
     function kernelDensityEstimator(kernel, X) {
-      return V => X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
+      return function(V) {
+        return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
+      };
     }
     function kernelEpanechnikov(k) {
-      return v => {
+      return function(v) {
         v /= k;
         return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
       };
     }
 
-    // Compute densities for each age group
     const xTicks = d3.range(d3.min(allHbA1c), d3.max(allHbA1c) + 0.1, 0.1);
-    const allDensities = ageBins.map(bin => {
+    const allDensities = [];
+    ageBins.forEach(bin => {
       const values = ageGrouped[bin];
-      if (!values.length) return { bin, density: [] };
-      const kde = kernelDensityEstimator(kernelEpanechnikov(0.4), xTicks);
-      return { bin, density: kde(values) };
+      if (values.length === 0) {
+        allDensities.push({ bin, density: [] });
+      } else {
+        const kde = kernelDensityEstimator(kernelEpanechnikov(0.4), xTicks);
+        const density = kde(values);
+        allDensities.push({ bin, density });
+      }
     });
 
-    // Max density (for scaling the violin width)
     const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]) || 0);
-
-    // Horizontal scale for density → pixels
     const xNum = d3.scaleLinear()
       .domain([0, maxDensity])
       .range([0, x.bandwidth() / 2]);
 
-    // Draw each violin
     allDensities.forEach(group => {
       const center = x(group.bin) + x.bandwidth() / 2;
       const grp = svg.append('g');
 
-      // Right half
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -309,7 +285,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke-width', 1)
         .attr('opacity', 0.6);
 
-      // Left half
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -324,7 +299,7 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 
-  // —— 2.2 Gender Box Plot ——
+  // —— 绘制性别箱线图（Gender Box）—— 
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
@@ -337,26 +312,21 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // X-scale: Male / Female
     const x = d3.scaleBand()
       .domain(genderBins)
       .range([0, width])
       .padding(0.4);
 
-    // Y-scale: same HbA1c range
     const allHbA1c = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
       .range([height, 0]);
 
-    // Draw axes
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
-    svg.append('g')
-      .call(d3.axisLeft(y));
+    svg.append('g').call(d3.axisLeft(y));
 
-    // Axis labels
     svg.append('text')
       .attr('x', width / 2)
       .attr('y', height + margin.bottom - 5)
@@ -369,25 +339,22 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // Compute five-number summary for each gender
     const boxData = [];
     genderBins.forEach(gen => {
-      const arr = genderGrouped[gen].sort(d3.ascending);
-      const q1 = d3.quantile(arr, 0.25);
-      const median = d3.quantile(arr, 0.5);
-      const q3 = d3.quantile(arr, 0.75);
+      const values = genderGrouped[gen].sort(d3.ascending);
+      const q1 = d3.quantile(values, 0.25);
+      const median = d3.quantile(values, 0.5);
+      const q3 = d3.quantile(values, 0.75);
       const iqr = q3 - q1;
-      const lowerWhisker = Math.max(d3.min(arr), q1 - 1.5 * iqr);
-      const upperWhisker = Math.min(d3.max(arr), q3 + 1.5 * iqr);
+      const lowerWhisker = Math.max(d3.min(values), q1 - 1.5 * iqr);
+      const upperWhisker = Math.min(d3.max(values), q3 + 1.5 * iqr);
       boxData.push({ gender: gen, q1, median, q3, lowerWhisker, upperWhisker });
     });
 
-    // Draw each box
     const boxWidth = x.bandwidth() * 0.5;
     boxData.forEach(d => {
       const cx = x(d.gender) + x.bandwidth() / 2;
 
-      // Box rectangle
       svg.append('rect')
         .attr('x', cx - boxWidth / 2)
         .attr('y', y(d.q3))
@@ -398,7 +365,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 1);
 
-      // Median line
       svg.append('line')
         .attr('x1', cx - boxWidth / 2)
         .attr('x2', cx + boxWidth / 2)
@@ -407,7 +373,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 2);
 
-      // Whiskers (vertical)
       svg.append('line')
         .attr('x1', cx)
         .attr('x2', cx)
@@ -423,7 +388,6 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 1);
 
-      // Whisker caps (horizontal)
       svg.append('line')
         .attr('x1', cx - boxWidth / 4)
         .attr('x2', cx + boxWidth / 4)
@@ -443,19 +407,14 @@ function drawAgeViolinGenderBox(data) {
 }
 
 
-
 /* =========================================================================
-   3. HbA1c Threshold vs. Diabetes Proportion (Slider + Line Chart)
-   Data input: hbData (from diabetes_with_HbA1c.csv)
-   Container ID: #riskBar
+   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点（使用 dataPred）
    ========================================================================= */
 function drawRiskCurve(data) {
-  // Extract just the HbA1c values
   const allHbValues = data.map(d => d.hbA1c);
   const minHb = d3.min(allHbValues);
   const maxHb = d3.max(allHbValues);
 
-  // Configure the slider
   const hbSlider = d3.select('#hbSlider')
     .attr('min', minHb.toFixed(1))
     .attr('max', maxHb.toFixed(1))
@@ -463,10 +422,7 @@ function drawRiskCurve(data) {
 
   d3.select('#thresholdValue').text(minHb.toFixed(1));
 
-  // Build an array of thresholds in increments of 0.1
   const thresholds = d3.range(minHb, maxHb + 0.0001, 0.1).map(d => +d.toFixed(1));
-
-  // For each threshold, compute proportion of those ≥ threshold who are diabetic
   const proportionData = thresholds.map(thr => {
     const subset = data.filter(d => d.hbA1c >= thr);
     if (!subset.length) return { threshold: thr, prop: 0 };
@@ -474,17 +430,14 @@ function drawRiskCurve(data) {
     return { threshold: thr, prop: countDi / subset.length };
   });
 
-  // SVG dimensions
   const margin = { top: 20, right: 30, bottom: 40, left: 60 };
   const svgWidth = 500;
   const svgHeight = 350;
   const chartWidth = svgWidth - margin.left - margin.right;
   const chartHeight = svgHeight - margin.top - margin.bottom;
 
-  // Clear any existing content
   d3.select('#riskBar').selectAll('*').remove();
 
-  // Create SVG
   const svg = d3.select('#riskBar')
     .append('svg')
     .attr('width', svgWidth)
@@ -492,24 +445,20 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // X-scale: threshold → pixels
   const xScale = d3.scaleLinear()
     .domain([minHb, maxHb])
     .range([0, chartWidth]);
 
-  // Y-scale: proportion (0–1) → pixels
   const yScale = d3.scaleLinear()
     .domain([0, 1])
     .range([chartHeight, 0]);
 
-  // Draw axes
   svg.append('g')
     .attr('transform', `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xScale).ticks(6));
   svg.append('g')
     .call(d3.axisLeft(yScale).tickFormat(d3.format('.0%')).ticks(5));
 
-  // Axis labels
   svg.append('text')
     .attr('x', chartWidth / 2)
     .attr('y', chartHeight + margin.bottom - 5)
@@ -525,7 +474,6 @@ function drawRiskCurve(data) {
     .attr('font-size', '14px')
     .text('Proportion of Diabetes');
 
-  // Draw the line
   const line = d3.line()
     .x(d => xScale(d.threshold))
     .y(d => yScale(d.prop))
@@ -538,7 +486,6 @@ function drawRiskCurve(data) {
     .attr('stroke-width', 2)
     .attr('d', line);
 
-  // Draw initial “active” point at the minimum threshold
   const activePoint = svg.append('circle')
     .attr('cx', xScale(minHb))
     .attr('cy', yScale(proportionData[0].prop))
@@ -547,7 +494,6 @@ function drawRiskCurve(data) {
     .attr('stroke', '#cc6600')
     .attr('stroke-width', 1.5);
 
-  // Percentage text label above the point
   const percentText = svg.append('text')
     .attr('x', xScale(minHb))
     .attr('y', yScale(proportionData[0].prop) - 10)
@@ -556,12 +502,10 @@ function drawRiskCurve(data) {
     .attr('fill', '#333')
     .text((proportionData[0].prop * 100).toFixed(1) + '%');
 
-  // Update function when slider moves
   function updateActivePoint(thr) {
     const t = +thr.toFixed(1);
     const idx = proportionData.findIndex(d => d.threshold === t);
     if (idx < 0) return;
-
     const yValue = proportionData[idx].prop;
     const xPos = xScale(t);
     const yPos = yScale(yValue);
@@ -576,11 +520,9 @@ function drawRiskCurve(data) {
       .text((yValue * 100).toFixed(1) + '%');
   }
 
-  // Initial placement
   updateActivePoint(minHb);
 
-  // Listen for input events on the slider
-  hbSlider.on('input', function () {
+  hbSlider.on('input', function() {
     const curVal = +this.value;
     d3.select('#thresholdValue').text(curVal.toFixed(1));
     updateActivePoint(curVal);
@@ -588,64 +530,47 @@ function drawRiskCurve(data) {
 }
 
 
-
 /* =========================================================================
-   4. BMI vs. HbA1c Scatter Plot — Multi-Factor Coloring (first 2000 points)
-   Data input: predData (from diabetes_prediction_dataset.csv)
-   Container ID: #comboScatter
+   5. BMI vs. HbA1c Scatter Plot —— 多重风险因子组合着色（仅前 2000 条，使用 dataPred）
    ========================================================================= */
 function drawComboScatter(data) {
-  // 1) Only keep the first 2000 rows
   const plotData = data.slice(0, 2000);
 
-  // 2) Clear any existing SVG and tooltips
-  d3.select('#comboScatter').selectAll('*').remove();
+  d3.select('#scatterPlot').selectAll('*').remove();
   d3.selectAll('.tooltip').remove();
 
-  // 3) Margin & SVG size
   const margin = { top: 40, right: 180, bottom: 60, left: 60 };
-  const container = document.getElementById('comboScatter');
-  if (!container) {
-    console.error('Error: #comboScatter container not found in HTML.');
-    return;
-  }
+  const container = document.getElementById('scatterPlot');
   const containerWidth = container.clientWidth;
   const containerHeight = container.clientHeight;
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // 4) Create the SVG canvas
-  const svg = d3.select('#comboScatter')
+  const svg = d3.select('#scatterPlot')
     .append('svg')
     .attr('width', containerWidth)
     .attr('height', containerHeight)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 5) X-scale: BMI (based on plotData)
   const xMin = d3.min(plotData, d => d.bmi) - 1;
   const xMax = d3.max(plotData, d => d.bmi) + 1;
   const xScale = d3.scaleLinear()
     .domain([xMin, xMax])
     .range([0, width]);
 
-  // 6) Y-scale: HbA1c (based on plotData)
   const yMin = d3.min(plotData, d => d.hbA1c) - 0.2;
   const yMax = d3.max(plotData, d => d.hbA1c) + 0.2;
   const yScale = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
 
-  // 7) Draw X-axis
   svg.append('g')
-    .attr('transform', `translate(0,${height})`)
+    .attr('transform', `translate(0, ${height})`)
     .call(d3.axisBottom(xScale).ticks(8));
-
-  // 8) Draw Y-axis
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
 
-  // 9) X-axis label
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + 40)
@@ -653,7 +578,6 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('BMI');
 
-  // 10) Y-axis label
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -height / 2)
@@ -662,20 +586,15 @@ function drawComboScatter(data) {
     .attr('font-size', '14px')
     .text('HbA1c (%)');
 
-  // 11) Tooltip container
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // 12) Extract all unique comboKey values
   const uniqueCombos = Array.from(new Set(plotData.map(d => d.comboKey)));
-
-  // 13) Assign each comboKey a color (using interpolateRainbow)
   const colorScale = d3.scaleOrdinal()
     .domain(uniqueCombos)
     .range(uniqueCombos.map((_, i) => d3.interpolateRainbow(i / (uniqueCombos.length - 1))));
 
-  // 14) Draw scatter points
   svg.selectAll('.dot')
     .data(plotData)
     .enter()
@@ -687,13 +606,11 @@ function drawComboScatter(data) {
     .attr('fill', d => colorScale(d.comboKey))
     .attr('opacity', 0.75)
     .on('mouseover', function(event, d) {
-      // Enlarge point + add border
       d3.select(this)
         .attr('r', 6)
         .attr('stroke', '#333')
         .attr('stroke-width', 1);
 
-      // Build tooltip HTML
       const textHtml = `
         <strong>Hypertension:</strong> ${d.hypertension === 1 ? 'Yes' : 'No'}<br>
         <strong>Heart Disease:</strong> ${d.heart_disease === 1 ? 'Yes' : 'No'}<br>
@@ -708,14 +625,12 @@ function drawComboScatter(data) {
         .style('opacity', 1);
     })
     .on('mouseout', function() {
-      // Restore point
       d3.select(this)
         .attr('r', 4)
         .attr('stroke', 'none');
       tooltip.style('opacity', 0);
     });
 
-  // 15) Draw the legend on the right
   const legend = svg.append('g')
     .attr('class', 'legend')
     .attr('transform', `translate(${width + 20}, 0)`);
@@ -724,7 +639,6 @@ function drawComboScatter(data) {
     const row = legend.append('g')
       .attr('transform', `translate(0, ${i * 20})`);
 
-    // Color rectangle
     row.append('rect')
       .attr('width', 14)
       .attr('height', 14)
@@ -732,7 +646,6 @@ function drawComboScatter(data) {
       .attr('stroke', '#555')
       .attr('stroke-width', 0.5);
 
-    // Format "0-1-0-1" → "HT:N, HD:Y, SM:N, HB:Y"
     const parts = key.split('-').map(Number);
     const labelText =
       `HT:${parts[0] === 1 ? 'Y' : 'N'}, ` +

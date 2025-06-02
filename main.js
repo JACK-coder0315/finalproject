@@ -640,19 +640,26 @@ function drawRiskCurve(data) {
 // ======================================================
 // 4. Individual Variables vs HbA1c Scatter Plot
 // ======================================================
+/**
+ * 4. Individual Variables vs HbA1c Scatter Plot
+ *    - data: 从 diabetes_with_HbA1c.csv 读进来的数组
+ *    - variableKey: 下拉菜单中选中的二元变量列名（例如 "HighBP"）
+ */
 function drawCasePlot(data, variableKey) {
-  // Clear previous plot & tooltips
+  // —— 1. 清空旧的 SVG & tooltip —— 
   d3.select('#casePlot').selectAll('*').remove();
   d3.selectAll('.tooltip').remove();
 
-  // (Optionally) Limit to first 5000 points for performance
+  // —— 2. 选择要绘制的点数 —— 
+  // 如果要展示全部点，可把下面这行改为： const plotData = data;
+  // 但为了性能，我们这里保留前 5000 条：
   const plotData = data.slice(0, 5000);
 
-  // Set margins and dimensions
+  // —— 3. 设置 margin 和 容器大小 —— 
   const margin = { top: 40, right: 150, bottom: 60, left: 60 };
   const container = document.getElementById('casePlot');
   if (!container) {
-    console.error('Cannot find #casePlot container');
+    console.error('Cannot find #casePlot container in DOM');
     return;
   }
   const containerWidth = container.clientWidth;
@@ -660,7 +667,7 @@ function drawCasePlot(data, variableKey) {
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // Create SVG canvas
+  // —— 4. 创建 SVG 画布 —— 
   const svg = d3.select('#casePlot')
     .append('svg')
     .attr('width', containerWidth)
@@ -668,26 +675,30 @@ function drawCasePlot(data, variableKey) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // X axis: selected binary variable (0/1) with jitter
+  // —— 5. X 轴：选中变量 (0/1)，加随机抖动 (jitter) —— 
   const xScale = d3.scaleLinear()
     .domain([-0.2, 1.2])
     .range([0, width]);
 
-  // Y axis: HbA1c
+  // —— 6. Y 轴：HbA1c —— 
   const yMin = d3.min(plotData, d => d.HbA1c) - 0.2;
   const yMax = d3.max(plotData, d => d.HbA1c) + 0.2;
   const yScale = d3.scaleLinear()
     .domain([yMin, yMax])
     .range([height, 0]);
 
-  // Draw axes
+  // —— 7. 绘制坐标轴 —— 
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(xScale).tickFormat(d => (d === 0 ? '0' : (d === 1 ? '1' : ''))));
+    .call(d3.axisBottom(xScale).tickFormat(d => {
+      if (d <= 0) return '0';
+      if (d >= 1) return '1';
+      return '';
+    }));
   svg.append('g')
     .call(d3.axisLeft(yScale).ticks(8));
 
-  // Axis labels
+  // —— 8. 坐标轴文字标签 —— 
   svg.append('text')
     .attr('x', width / 2)
     .attr('y', height + margin.bottom - 10)
@@ -703,58 +714,76 @@ function drawCasePlot(data, variableKey) {
     .attr('font-size', '14px')
     .text('HbA1c (%)');
 
-  // Tooltip container
+  // —— 9. 创建 Tooltip 容器 —— 
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'tooltip');
 
-  // Color by Diabetes_012 (0 / 1 / 2)
+  // —— 10. 根据 Diabetes_012 (0/1/2) 设置颜色 —— 
   const diabetesCategories = Array.from(new Set(plotData.map(d => d.Diabetes_012)));
   const colorScale = d3.scaleOrdinal()
     .domain(diabetesCategories)
-    .range(['#1f77b4', '#ff7f0e', '#2ca02c']);
+    .range(['#1f77b4', '#ff7f0e', '#2ca02c']); // 0=No Diabetes (蓝), 1=Prediabetes (橙), 2=Diabetes (绿)
 
-  // Draw points
+  // —— 11. 绘制散点 —— 
   svg.selectAll('.dot-case')
     .data(plotData)
     .enter()
     .append('circle')
     .attr('class', 'dot-case')
     .attr('cx', d => {
-      const raw = d[variableKey];
-      return xScale(raw + (Math.random() * 0.2 - 0.1));
+      // 抖动：先取 rawValue = 0 或 1，再加上 [-0.1, +0.1] 的随机偏移
+      const rawValue = d[variableKey];
+      return xScale(rawValue + (Math.random() * 0.2 - 0.1));
     })
     .attr('cy', d => yScale(d.HbA1c))
     .attr('r', 4)
     .attr('fill', d => colorScale(d.Diabetes_012))
     .attr('opacity', 0.75)
-    .on('mouseover', function (event, d) {
+    .on('mouseover', function(event, d) {
+      // 先把 circle 放大并加边框
       d3.select(this)
         .attr('r', 6)
         .attr('stroke', '#333')
         .attr('stroke-width', 1);
 
+      // 根据 Diabetes_012 字段，将数字转成文字
       const statusText = d.Diabetes_012 === 0 ? 'No Diabetes'
         : (d.Diabetes_012 === 1 ? 'Prediabetes' : 'Diabetes');
 
+      // 构建 tooltip 显示 HTML
       const textHtml = `
         <strong>${variableKey}:</strong> ${d[variableKey] === 1 ? 'Yes' : 'No'}<br/>
         <strong>HbA1c:</strong> ${d.HbA1c.toFixed(1)}%<br/>
         <strong>Status:</strong> ${statusText}
       `;
-      tooltip.html(textHtml)
+
+      // 把 tooltip 从 display:none 切换到 display:block，再让它渐变到 opacity=1
+      tooltip
+        .style('display', 'block')
         .style('left', (event.pageX + 12) + 'px')
         .style('top', (event.pageY - 28) + 'px')
+        .html(textHtml)
+        .transition()
+        .duration(100)
         .style('opacity', 1);
     })
-    .on('mouseout', function () {
+    .on('mouseout', function() {
+      // 鼠标离开时收回圆圈样式
       d3.select(this)
         .attr('r', 4)
         .attr('stroke', 'none');
-      tooltip.style('opacity', 0);
+
+      // tooltip 渐变到 opacity=0，然后在 transition 结束后切换 display:none
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', 0)
+        .on('end', () => {
+          tooltip.style('display', 'none');
+        });
     });
 
-  // Draw legend on the right
+  // —— 12. 绘制右侧图例 —— 
   const legend = svg.append('g')
     .attr('class', 'legend')
     .attr('transform', `translate(${width + 20}, 0)`);

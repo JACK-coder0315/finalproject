@@ -95,7 +95,8 @@
       <li>How HbA1c varies across defined age groups</li>
       <li>Comparison of HbA1c by gender (male vs. female)</li>
       <li>The relationship between HbA1c and the probability of developing type 2 diabetes</li>
-      <li>The relationship between individual binary variables (e.g., HighBP, HighChol, Smoker) and HbA1c/diabetes status</li>
+      <li>The relationship between individual binary variables (e.g., HighBP, HighChol, Smoker) and HbA1c/diabetes
+        status</li>
     </ol>
     </p>
   </section>
@@ -231,59 +232,64 @@
     </div>
   </section>
 
-<!-- ==============================
+  <!-- ==============================
      5. Individual Variables vs HbA1c Scatter Plot
      ============================== -->
-<section id="case" class="section-container">
-  <h2>Individual Variables vs HbA1c</h2>
-  <p class="subtitle" style="margin-bottom: 1rem;">
-    Select any binary column (e.g., HighBP, HighChol, Smoker, etc.) from the dropdown to see its relationship with
-    participants' HbA1c. Points are colored by Diabetes_012 (0 = No Diabetes, 1 = Prediabetes, 2 = Diabetes).
-  </p>
-
-  <!-- Dropdown -->
-  <div class="controls" style="margin-bottom: 1rem;">
-    <label for="caseVarSelect" class="control-label">Choose Variable:</label>
-    <select id="caseVarSelect" class="control-select">
-      <option value="HighBP">HighBP</option>
-      <option value="HighChol">HighChol</option>
-      <option value="CholCheck">CholCheck</option>
-      <option value="Smoker">Smoker</option>
-      <option value="Stroke">Stroke</option>
-      <option value="HeartDiseaseorAttack">HeartDiseaseorAttack</option>
-      <option value="PhysActivity">PhysActivity</option>
-      <option value="Fruits">Fruits</option>
-      <option value="Veggies">Veggies</option>
-      <option value="HvyAlcoholConsump">HvyAlcoholConsump</option>
-      <option value="AnyHealthcare">AnyHealthcare</option>
-      <option value="NoDocbcCost">NoDocbcCost</option>
-      <option value="DiffWalk">DiffWalk</option>
-    </select>
-  </div>
-
-  <!-- Scatter Plot Container -->
-  <div id="casePlot" style="width: 100%; height: 500px; position: relative;"></div>
-  <p class="caption">
-    Figure 4. Selected variable (0 or 1) with jitter vs HbA1c (%). Colors represent Diabetes_012 (0/1/2).
-  </p>
-
-  <!-- 新增的解释文字 -->
-  <div class="case-interpretation" style="margin-top: 1.5rem;">
-    <h3>Interpretation</h3>
-    <p>
-      In this scatter plot, you see two vertical “columns” of points: one at x = 0 (left) and one at x = 1 (right). Each dot’s
-      vertical position corresponds to that person’s HbA1c value (in %), and its color indicates diabetes status:
-      blue = No Diabetes (Diabetes_012 = 0), green = Prediabetes (Diabetes_012 = 1), and orange = Diabetes (Diabetes_012 = 2).
-      <br><br>
-      When the selected variable equals 1, the cluster of dots on the right generally has higher HbA1c levels and a larger
-      proportion of green/orange points compared to the cluster on the left (where the selected variable = 0). For example,
-      if you choose “HighBP,” individuals with HighBP = 1 (right side) tend to have slightly higher HbA1c values and more
-      prediabetes/diabetes cases than those with HighBP = 0 (left side). By switching the dropdown to any other binary
-      column (HighChol, Smoker, etc.), you can quickly observe how that particular risk factor associates with HbA1c
-      distribution and diabetes status.
+  <section id="case" class="section-container">
+    <h2>Individual Variables vs HbA1c</h2>
+    <p class="subtitle" style="margin-bottom: 1rem;">
+      Select any binary column (e.g., HighBP, HighChol, Smoker, etc.) from the dropdown to see its relationship with
+      participants' HbA1c. Points are colored by Diabetes_012 (0 = No Diabetes, 1 = Prediabetes, 2 = Diabetes).
     </p>
-  </div>
-</section>
+
+    <!-- Dropdown -->
+    <div class="controls" style="margin-bottom: 1rem;">
+      <label for="caseVarSelect" class="control-label">Choose Variable:</label>
+      <select id="caseVarSelect" class="control-select">
+        <option value="HighBP">HighBP</option>
+        <option value="HighChol">HighChol</option>
+        <option value="CholCheck">CholCheck</option>
+        <option value="Smoker">Smoker</option>
+        <option value="Stroke">Stroke</option>
+        <option value="HeartDiseaseorAttack">HeartDiseaseorAttack</option>
+        <option value="PhysActivity">PhysActivity</option>
+        <option value="Fruits">Fruits</option>
+        <option value="Veggies">Veggies</option>
+        <option value="HvyAlcoholConsump">HvyAlcoholConsump</option>
+        <option value="AnyHealthcare">AnyHealthcare</option>
+        <option value="NoDocbcCost">NoDocbcCost</option>
+        <option value="DiffWalk">DiffWalk</option>
+      </select>
+    </div>
+
+    <!-- Scatter Plot Container -->
+    <div id="casePlot" style="width: 100%; height: 500px; position: relative;"></div>
+    <p class="caption">
+      Figure 4. Selected variable (0 or 1) with jitter vs HbA1c (%). Colors represent Diabetes_012 (0/1/2).
+    </p>
+
+    <!-- 新增的解释文字 -->
+    <div class="case-interpretation" style="margin-top: 1.5rem;">
+      <h3>Interpretation</h3>
+      <p>
+        In this scatter plot, you see two vertical “columns” of points: one at x = 0 (left) and one at x = 1 (right).
+        Each dot’s
+        vertical position corresponds to that person’s HbA1c value (in %), and its color indicates diabetes status:
+        blue = No Diabetes (Diabetes_012 = 0), green = Prediabetes (Diabetes_012 = 1), and orange = Diabetes
+        (Diabetes_012 = 2).
+        <br><br>
+        When the selected variable equals 1, the cluster of dots on the right generally has higher HbA1c levels and a
+        larger
+        proportion of green/orange points compared to the cluster on the left (where the selected variable = 0). For
+        example,
+        if you choose “HighBP,” individuals with HighBP = 1 (right side) tend to have slightly higher HbA1c values and
+        more
+        prediabetes/diabetes cases than those with HighBP = 0 (left side). By switching the dropdown to any other binary
+        column (HighChol, Smoker, etc.), you can quickly observe how that particular risk factor associates with HbA1c
+        distribution and diabetes status.
+      </p>
+    </div>
+  </section>
 
 
   <!-- ==============================
@@ -293,19 +299,42 @@
     <h2>Conclusion & References</h2>
     <ul>
       <li>
-        When HbA1c ≥ 5.7%, participants fall into the “prediabetes” category, and the risk of diabetes increases
-        significantly—prompt intervention is recommended.
+        Most participants’ HbA1c values cluster between 5.5% and 6.5%, with the highest frequency around 6.5%.
       </li>
       <li>
-        HbA1c distributions remain consistent across age groups; gender differences are not significant.
+        When classified by clinical thresholds, “Normal (<5.7%)”, “Prediabetes (5.7%–6.5%)”, and “Diabetes (≥6.5%)”
+          account for approximately 72%, 21%, and 7% of the cohort, respectively. </li>
+      <li>
+        Across age groups (0–20, 20–40, 40–60, 60–80), the HbA1c distributions have similar shapes; medians and spread
+        show no significant differences.
       </li>
       <li>
-        Use the dropdown to select variables like HighBP, HighChol, Smoker, etc., and observe their correlation with
-        HbA1c and diabetes status.
+        Male and female participants exhibit nearly identical HbA1c medians and distribution ranges, indicating minimal
+        gender effect on HbA1c levels.
       </li>
       <li>
-        For example, those with HighBP=1 tend to have slightly higher HbA1c, and the color (Diabetes_012) shows a
-        higher proportion of prediabetes (1) or diabetes (2).
+        As the HbA1c threshold increases, the proportion of diabetes cases in the ≥ threshold subgroup follows an
+        S-shaped rise; once the threshold exceeds 6.5%, nearly everyone is a confirmed diabetic.
+      </li>
+      <li>
+        Individuals with high blood pressure (HighBP = 1) have higher HbA1c values and a greater proportion of
+        prediabetes/diabetes compared to those without high blood pressure.
+      </li>
+      <li>
+        Other cardiovascular risk factors (HighChol = 1, HeartDiseaseorAttack = 1, Smoker = 1) also correlate with
+        elevated HbA1c and higher diabetes prevalence.
+      </li>
+      <li>
+        Participants who engage in regular physical activity (PhysActivity = 1) tend to have lower HbA1c levels and a
+        higher proportion without diabetes, indicating that exercise positively influences glycemic control.
+      </li>
+      <li>
+        Individuals who consume fruits or vegetables regularly (Fruits = 1, Veggies = 1) exhibit lower HbA1c and fewer
+        diabetes cases, suggesting that healthy diet habits support better blood sugar management.
+      </li>
+      <li>
+        Groups with healthcare access (AnyHealthcare = 1), higher income, or higher education levels generally have
+        lower HbA1c, implying that favorable socioeconomic conditions also benefit glycemic control.
       </li>
     </ul>
     <h3>References</h3>

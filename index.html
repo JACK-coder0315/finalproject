@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HbA1c &amp; Early Diabetes Risk Visualization</title>
+  <title>HbA1c & 早期糖尿病风险可视化</title>
 
-  <!-- ====== 引入 D3.js ====== -->
+  <!-- 引入 D3.js -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 
-  <!-- ====== 自定义样式 ====== -->
+  <!-- 自定义样式 -->
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
 </head>
@@ -20,65 +20,55 @@
        ============================== -->
   <nav id="navbar">
     <ul>
-      <li><a href="#hero">Home</a></li>
-      <li><a href="#intro">Introduction</a></li>
-      <li><a href="#dist">HbA1c Distribution</a></li>
-      <li><a href="#ageViolin">Age &amp; Gender Plots</a></li>
-      <li><a href="#risk">Risk Curve</a></li>
-      <li><a href="#case">Individual Cases</a></li>
-      <li><a href="#conclusion">Conclusion</a></li>
+      <li><a href="#hero">首页</a></li>
+      <li><a href="#intro">引言</a></li>
+      <li><a href="#dist">HbA1c 分布</a></li>
+      <li><a href="#ageViolin">年龄 & 性别图</a></li>
+      <li><a href="#risk">风险曲线</a></li>
+      <li><a href="#case">个体变量图</a></li>
+      <li><a href="#conclusion">结论</a></li>
     </ul>
   </nav>
 
   <!-- ==============================
-       0. Hero Section：左右两栏
+       0. Hero Section
        ============================== -->
   <section id="hero" class="hero-section">
-    <!-- 左侧文字区域 -->
     <div class="hero-text">
       <h1 class="hero-title">
-        The Effect of <span class="highlight">HbA1c</span> on Predicting Diabetes
+        HbA1c 在糖尿病预测中的作用
       </h1>
       <p class="hero-subtitle">
-        Investigating how HbA1c levels vary across different age groups and genders, and their implications for
-        early diabetes risk.
+        探讨 HbA1c 水平如何随着不同年龄段和性别变化，以及其对早期糖尿病风险的影响。
       </p>
       <div class="hero-buttons">
-        <!-- Data 按钮跳转到 Kaggle 数据集 -->
         <a href="https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset" class="btn btn-primary"
           target="_blank" rel="noopener noreferrer">
-          Data
+          数据集
         </a>
-        <!-- Explore more 按钮跳转到 PMC 文章 -->
         <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4933534/" class="btn btn-secondary" target="_blank"
           rel="noopener noreferrer">
-          Explore more
+          深入了解
         </a>
       </div>
     </div>
 
     <div class="hero-graphic">
       <div class="graphic-container">
-        <!-- ====== 轮播 (Carousel) 开始 ====== -->
         <div class="carousel">
-          <!-- 第一帧 -->
           <div class="slide active">
-            <img src="images/slide1.png" alt="3D Render of Red Blood Cells" />
+            <img src="images/slide1.png" alt="3D 渲染的红细胞" />
           </div>
-          <!-- 第二帧 -->
           <div class="slide">
-            <img src="images/slide2.png" alt="High vs Low HbA1c on Red Blood Cell" />
+            <img src="images/slide2.png" alt="HbA1c 高低示意" />
           </div>
-          <!-- 第三帧 -->
           <div class="slide">
-            <img src="images/slide3.png" alt="Normal vs High Blood Glucose Illustration" />
+            <img src="images/slide3.png" alt="正常 vs 高血糖示意" />
           </div>
-          <!-- 第四帧 -->
           <div class="slide">
-            <img src="images/slide4.png" alt="Blood Glucose Meter Illustration" />
+            <img src="images/slide4.png" alt="血糖仪示意图" />
           </div>
         </div>
-        <!-- ====== 轮播 (Carousel) 结束 ====== -->
       </div>
     </div>
   </section>
@@ -87,203 +77,207 @@
        1. 引言部分
        ============================== -->
   <section id="intro" class="section-container">
-    <h1>What is HbA1c and Why Does It Matter?</h1>
+    <h1>什么是 HbA1c？为什么它很重要？</h1>
     <p>
-      HbA1c (glycated hemoglobin) is a biomarker formed when glucose binds to hemoglobin in red blood cells. Because
-      red blood cells live for about 120 days, HbA1c provides a reliable measure of average blood glucose levels over
-      the preceding 2–3 months. Clinically, HbA1c is widely used for diagnosing diabetes, identifying prediabetes,
-      and monitoring long-term glycemic control.
+      HbA1c（糖化血红蛋白）是葡萄糖与红细胞中的血红蛋白结合而形成的生物标志物。由于红细胞寿命约 120 天，HbA1c 能够反映过去 2–3 个月的平均血糖水平。在临床上，HbA1c 常用于诊断糖尿病、识别前驱糖尿病以及长期血糖控制的监测。
       <br /><br />
-      <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
-      <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
-      <strong>Diabetes diagnosis:</strong> HbA1c ≥ 6.5%
+      <strong>正常范围：</strong> HbA1c &lt; 5.7%<br />
+      <strong>前驱糖尿病（高风险）：</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
+      <strong>糖尿病诊断：</strong> HbA1c ≥ 6.5%
     </p>
     <p>
-      In this interactive visualization, we will explore:
+      在本交互式可视化中，我们将探索：
     <ol>
-      <li>Population-level distribution of HbA1c</li>
-      <li>How HbA1c varies across defined age groups</li>
-      <li>Comparison of HbA1c by gender (male vs. female)</li>
-      <li>The relationship between HbA1c and the probability of developing type 2 diabetes</li>
-      <li>Example individual trajectories illustrating progression from normal to prediabetes to diabetes</li>
+      <li>人群级别的 HbA1c 分布</li>
+      <li>不同年龄段的 HbA1c 变化</li>
+      <li>不同性别的 HbA1c 对比（男性 vs 女性）</li>
+      <li>HbA1c 与 2 型糖尿病发生概率的关系</li>
+      <li>个体二元变量（如高血压、高胆固醇、吸烟 等）与 HbA1c 及糖尿病状态的关系</li>
     </ol>
     </p>
   </section>
 
   <!-- ==============================
-       2. 人群 HbA1c 分布 —— 左右两栏：Key Statistics & Visualization
+       2. 人群 HbA1c 分布
        ============================== -->
   <section id="dist" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Key Statistics 区块 -->
+      <!-- 左侧：关键统计 -->
       <div class="summary-text">
-        <h2>Key Statistics</h2>
+        <h2>关键统计</h2>
         <p>
-          <strong>Dataset Summary:</strong><br />
-          This dataset contains <strong>10,000 participants</strong> who have both HbA1c measurements and
-          demographic attributes (age, gender, etc.). We categorized each subject into one of three HbA1c status
-          groups based on standard clinical thresholds.
+          <strong>数据集概况：</strong><br />
+          此数据集包含 <strong>10,000</strong> 名参与者，记录了 HbA1c 测量值和人口学特征（年龄、性别等）。我们基于临床门槛将每位参与者划分为三类：正常、前驱糖尿病、糖尿病。
         </p>
         <div class="stats-grid">
           <div class="stat-item">
             <h3>10,000</h3>
-            <p>Total Subjects</p>
+            <p>总参与者数</p>
           </div>
           <div class="stat-item">
             <h3>7,200</h3>
-            <p>Normal<br />(HbA1c &lt; 5.7%)</p>
+            <p>正常<br />(HbA1c &lt; 5.7%)</p>
           </div>
           <div class="stat-item">
             <h3>2,100</h3>
-            <p>Prediabetes<br />(5.7 ≤ HbA1c &lt; 6.5)</p>
+            <p>前驱糖尿病<br />(5.7 ≤ HbA1c &lt; 6.5)</p>
           </div>
           <div class="stat-item">
             <h3>700</h3>
-            <p>Diabetes<br />(HbA1c ≥ 6.5)</p>
+            <p>糖尿病<br />(HbA1c ≥ 6.5)</p>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：Population-Level HbA1c Distribution 可视化 -->
+      <!-- 右侧：直方图容器 -->
       <div class="chart-container">
-        <h2>Population‐Level HbA1c Distribution</h2>
+        <h2>人群级别 HbA1c 分布</h2>
         <div id="histogram"></div>
         <p class="caption">
-          Figure 1. Distribution of HbA1c values across the entire cohort.
+          图 1. 整个队列中 HbA1c 值的分布情况。
         </p>
       </div>
     </div>
   </section>
 
   <!-- ==============================
-       3. 年龄段 & 性别 分析 —— 左右两栏：小提琴图 & 箱线图
+       3. 年龄段 & 性别 分析（小提琴图 & 箱线图）
        ============================== -->
   <section id="ageViolin" class="section-container">
     <div class="two-column">
-      <!-- 左侧：Age & Gender Analysis 说明 (全英文，详细版) -->
+      <!-- 左侧：说明文字 -->
       <div class="summary-text">
-        <h2>Age &amp; Gender Analysis</h2>
+        <h2>年龄 & 性别分析</h2>
         <p>
-          In order to better understand how HbA1c distribution varies across different segments of the population, we
-          performed two focused analyses:
+          为了更好地理解 HbA1c 分布在不同人群中的差异，我们进行了两项分析：
         </p>
         <ul>
           <li>
-            <strong>Age Group Violin Plot:</strong> We divided the entire cohort into four distinct age brackets:
-            <strong>0–20 years, 20–40 years, 40–60 years, and 60–80 years</strong>. For each bracket, we collected all
-            HbA1c measurements and generated a violin plot that visualizes the full distribution density of HbA1c
-            values within that age range. This allows us to see the shape, spread, and symmetry of the data, as well
-            as any potential multimodal patterns.
+            <strong>年龄段小提琴图：</strong> 我们将队列划分为 0–20、20–40、40–60、60–80 四个年龄段，并为每个年龄段绘制小提琴图，展示该年龄段内 HbA1c 分布的密度形状。
           </li>
           <li>
-            <strong>Gender Box Plot:</strong> We also segregated participants by gender—<strong>Male</strong> and
-            <strong>Female</strong>—and constructed a box plot for each category, illustrating the median, interquartile
-            range (IQR), and whiskers based on standard 1.5×IQR rules. This comparison reveals any skewness, outliers,
-            and general spread differences in HbA1c between men and women.
+            <strong>性别箱线图：</strong> 根据性别（男性 vs 女性）分别绘制 HbA1c 箱线图，直观对比中位数、四分位距和离群值。
           </li>
         </ul>
         <p>
-          Based on the violin and box plots, HbA1c concentrations remain remarkably consistent across different age
-          brackets (0–20, 20–40, 40–60, and 60–80 years), with all age groups exhibiting very similar median values and
-          distribution shapes. Likewise, the box plot shows virtually identical median, interquartile range, and whisker
-          spans for males and females. In other words, neither age nor gender appears to have a meaningful impact on
-          overall HbA1c levels in this cohort.
-          plans.
+          从这些图表可以看出：不同年龄段的 HbA1c 值分布差异很小，且男性和女性之间也几乎看不到显著差异——不论是中位数还是分布宽度都非常相似。
         </p>
       </div>
 
-      <!-- 右侧：两个图并排，顶部小提琴图，底部箱线图 -->
+      <!-- 右侧：小提琴图 & 箱线图 -->
       <div class="chart-container">
-        <h2>HbA1c by Age Group &amp; Gender</h2>
-        <!-- Violin Plot -->
-        <div id="violinPlot"></div>
-        <p class="caption">Figure 2a. Violin Plot: HbA1c Distribution by Age Group</p>
+        <h2>HbA1c 按年龄段 & 性别 分布</h2>
 
-        <!-- Box Plot (height 与小提琴图相同) -->
+        <!-- 小提琴图 -->
+        <div id="violinPlot"></div>
+        <p class="caption">图 2a. 小提琴图：按年龄段展示 HbA1c 分布</p>
+
+        <!-- 箱线图 -->
         <div id="genderBoxPlot" style="margin-top: 2rem;"></div>
-        <p class="caption">Figure 2b. Box Plot: HbA1c Distribution by Gender</p>
+        <p class="caption">图 2b. 箱线图：按性别展示 HbA1c 分布</p>
       </div>
     </div>
   </section>
 
   <!-- ==============================
-       4. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
+       4. HbA1c 门槛 vs 糖尿病比例（滑块 + 折线图）
        ============================== -->
- <section id="risk" class="section-container">
-  <div class="two-column">
-    <!-- 左侧：Slider + 折线图 -->
-    <div class="chart-container">
-      <h2>HbA1c Threshold vs. Diabetes Proportion</h2>
-      <!-- 滑块容器 -->
-      <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
-        <label for="hbSlider">HbA1c Threshold: </label>
-        <input type="range" id="hbSlider" step="0.1" />
-        <span id="thresholdValue">0.0</span>
+  <section id="risk" class="section-container">
+    <div class="two-column">
+      <!-- 左侧：滑块 & 折线图 -->
+      <div class="chart-container">
+        <h2>HbA1c 门槛 vs 糖尿病比例</h2>
+        <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
+          <label for="hbSlider">HbA1c 门槛: </label>
+          <input type="range" id="hbSlider" step="0.1" />
+          <span id="thresholdValue">0.0</span>
+        </div>
+        <div id="riskBar"></div>
+        <p class="caption">
+          图 3a. 当 HbA1c ≥ T 时，该子群中患糖尿病的百分比。
+        </p>
       </div>
-      <!-- 动态折线图的 SVG 容器 -->
-      <div id="riskBar"></div>
-      <p class="caption">Figure 3a. When HbA1c ≥ threshold T, the proportion of diabetes cases in that subgroup.</p>
+
+      <!-- 右侧：解释文字 -->
+      <div class="summary-text">
+        <h2>图表解读</h2>
+        <ul>
+          <li>
+            当 T 较低（接近最小 HbA1c）时，包含的个体多，但患糖尿病的比例较小。
+          </li>
+          <li>
+            随着 T 增加，仅剩下更高 HbA1c 个体，他们的糖尿病比例逐渐升高。
+          </li>
+          <li>
+            一旦 T 超过 6.5%（临床诊断线），曲线迅速接近 100%，说明几乎所有该子群都确诊糖尿病。
+          </li>
+        </ul>
+        <p>
+          左侧滑块和折线图会动态联动，右侧文字说明则帮助理解临床意义。
+        </p>
+      </div>
     </div>
-
-    <!-- 右侧：对可视化的详细解释 -->
-    <div class="summary-text">
-      <h2>Interpretation</h2>
-      <ul>
-        <li>When T is low (close to the minimum HbA1c value), many individuals meet the criterion, but the proportion of diabetic patients among them is relatively small.</li>
-        <li>As T increases, only those with higher HbA1c values remain, and their diabetes proportion gradually rises.</li>
-        <li>Once T exceeds around 6.5% (the clinical diagnostic threshold), the curve quickly approaches 100%, indicating that almost all individuals in this subgroup are diagnosed with diabetes.</li>
-      </ul>
-      <p>
-        With this two-column layout, we can observe the slider and curve updating dynamically on the left while reading a detailed explanation on the right. This clearly demonstrates that as HbA1c increases, the proportion of individuals with diabetes also increases.
-      </p>
-    </div>
-  </div>
-</section>
-
-
+  </section>
 
   <!-- ==============================
-       5. 个体案例模拟（如果有纵向数据，可放到这里；否则留空或删掉）
+       5. 个体变量 vs HbA1c 散点图
        ============================== -->
   <section id="case" class="section-container">
-    <h2>Individual Progression Examples</h2>
-    <div id="caseCharts"></div>
-    <p class="caption">Figure 4. Example trajectories from normal → prediabetes → diabetes.</p>
+    <h2>个体变量 vs HbA1c</h2>
+    <p class="subtitle" style="margin-bottom: 1rem;">
+      从下拉列表中选择任意二元列（例如 HighBP、HighChol、Smoker 等），观察它与参与者 HbA1c 之间的关系。点的颜色表示 Diabetes_012（0=无糖尿病，1=前驱糖尿病，2=糖尿病）。
+    </p>
+
+    <!-- 下拉菜单 -->
+    <div class="controls" style="margin-bottom: 1rem;">
+      <label for="caseVarSelect" class="control-label">选择变量：</label>
+      <select id="caseVarSelect" class="control-select">
+        <option value="HighBP">HighBP</option>
+        <option value="HighChol">HighChol</option>
+        <option value="CholCheck">CholCheck</option>
+        <option value="Smoker">Smoker</option>
+        <option value="Stroke">Stroke</option>
+        <option value="HeartDiseaseorAttack">HeartDiseaseorAttack</option>
+        <option value="PhysActivity">PhysActivity</option>
+        <option value="Fruits">Fruits</option>
+        <option value="Veggies">Veggies</option>
+        <option value="HvyAlcoholConsump">HvyAlcoholConsump</option>
+        <option value="AnyHealthcare">AnyHealthcare</option>
+        <option value="NoDocbcCost">NoDocbcCost</option>
+        <option value="DiffWalk">DiffWalk</option>
+        <!-- 如有其他二元列，可在此补充 -->
+      </select>
+    </div>
+
+    <!-- 散点图容器 -->
+    <div id="casePlot" style="width: 100%; height: 500px; position: relative;"></div>
+    <p class="caption">
+      图 4. 选定变量 (0或1)+抖动 vs HbA1c (%)。颜色表示 Diabetes_012（0/1/2）。
+    </p>
   </section>
 
   <!-- ==============================
-       6. 结论与参考文献
+       6. 结论 & 参考文献
        ============================== -->
   <section id="conclusion" class="section-container">
-    <h2>Conclusions &amp; References</h2>
+    <h2>结论 & 参考文献</h2>
     <ul>
-      <li>When HbA1c ≥ 5.7%, it falls into the “prediabetes” range, and the risk of developing diabetes rises
-        significantly; lifestyle interventions should be initiated immediately.</li>
-      <li>Across different age groups, the average HbA1c slightly increases with age, particularly after middle age.
-      </li>
-      <li>Based on a logistic regression model, each 1% increase in HbA1c substantially raises the likelihood of
-        developing diabetes; clinically, it is recommended to keep HbA1c &lt; 6.5%.</li>
-      <li>Individual trajectory examples demonstrate that early detection and intervention can reverse or delay
-        progression from the “prediabetes” stage for some people.</li>
+      <li>当 HbA1c ≥ 5.7% 时，被划为“前驱糖尿病”，糖尿病风险显著增加；需及早干预。</li>
+      <li>不同年龄段中，HbA1c 值基本保持一致；性别差异也不显著。</li>
+      <li>通过下拉菜单选择 HighBP、HighChol、Smoker 等变量，可直观比较它们与 HbA1c 及糖尿病状态的关系。</li>
+      <li>例如，HighBP=1 的人群相比 HighBP=0，其 HbA1c 值略高，且颜色（Diabetes_012）显示了已有糖尿病（2）或前驱糖尿病（1）的比例。</li>
     </ul>
-    <h3>References</h3>
+    <h3>参考文献</h3>
     <ol>
-      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">Significance of HbA1c Test in
-          Diagnosis and Prognosis of Diabetic Complications</a></li>
-      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">Glycated Haemoglobin (HbA1c) for the
-          Diagnosis of Diabetes</a></li>
-      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">Is HbA1c an Ideal Biomarker
-          of Well-Controlled Diabetes?</a></li>
-      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">Review of
-          Hemoglobin A1c in the Management of Diabetes</a></li>
-      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">Global Variation in Diabetes
-          Diagnosis and Prevalence Based on Fasting Glucose and Hemoglobin A1c</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4933534/" target="_blank">HbA1c 测试在糖尿病并发症诊断和预后中的意义</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK304271/" target="_blank">HbA1c 用于糖尿病诊断的指南</a></li>
+      <li><a href="https://academic.oup.com/pmj/article/97/1148/380/6969559" target="_blank">HbA1c 是否为理想的血糖控制生物标志物？</a></li>
+      <li><a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1753-0407.2009.00009.x" target="_blank">HbA1c 在糖尿病管理中的综述</a></li>
+      <li><a href="https://www.nature.com/articles/s41591-023-02610-2" target="_blank">基于空腹血糖和 HbA1c 的全球糖尿病诊断和患病率差异</a></li>
     </ol>
   </section>
 
-  <!-- ==============================
-       引入自定义脚本（必须放在 body 底部）
-       ============================== -->
+  <!-- 引入自定义脚本 -->
   <script src="main.js"></script>
 </body>
 

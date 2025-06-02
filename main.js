@@ -1,8 +1,10 @@
 // main.js
 
-// 等待 DOM 完全加载后执行
+// 等待 DOM 加载完成后执行
 document.addEventListener('DOMContentLoaded', () => {
-  // 读取原始 Kaggle 数据
+  // ================================================
+  // 1. 读取 diabetes_prediction_dataset.csv 并绘制前三个可视化
+  // ================================================
   d3.csv('data/diabetes_prediction_dataset.csv', d => ({
     gender: d.gender,
     age: +d.age,
@@ -13,41 +15,80 @@ document.addEventListener('DOMContentLoaded', () => {
     hbA1c: +d.HbA1c_level,
     blood_glucose: +d.blood_glucose_level,
     diabetes: +d.diabetes
-  })).then(rawData => {
-    // 为每条记录添加 status（HbA1c 状态）和 ageGroup
-    rawData.forEach(d => {
-      // HbA1c 状态（可选，仅作后续风险曲线使用）
-      if (d.hbA1c < 5.7) d.status = 'normal';
-      else if (d.hbA1c < 6.5) d.status = 'prediabetes';
-      else d.status = 'diabetes';
+  }))
+    .then(rawData => {
+      // 为每条记录添加 status（normal / prediabetes / diabetes）和 ageGroup
+      rawData.forEach(d => {
+        if (d.hbA1c < 5.7) d.status = 'normal';
+        else if (d.hbA1c < 6.5) d.status = 'prediabetes';
+        else d.status = 'diabetes';
 
-      // 年龄分组：0-20, 20-40, 40-60, 60-80
-      if (d.age <= 20) {
-        d.ageGroup = '0–20';
-      } else if (d.age > 20 && d.age <= 40) {
-        d.ageGroup = '20–40';
-      } else if (d.age > 40 && d.age <= 60) {
-        d.ageGroup = '40–60';
-      } else if (d.age > 60 && d.age <= 80) {
-        d.ageGroup = '60–80';
-      } else {
-        d.ageGroup = 'Other';  // 若有超出 80 岁的数据，可放这里
-      }
+        if (d.age <= 20) d.ageGroup = '0–20';
+        else if (d.age <= 40) d.ageGroup = '20–40';
+        else if (d.age <= 60) d.ageGroup = '40–60';
+        else if (d.age <= 80) d.ageGroup = '60–80';
+        else d.ageGroup = 'Other';  // 超出 80 岁的归为 Other
+      });
+
+      // 绘制前三个可视化
+      drawHistogram(rawData);
+      drawAgeViolinGenderBox(rawData);
+      drawRiskCurve(rawData);
+    })
+    .catch(error => {
+      console.error('加载 diabetes_prediction_dataset.csv 失败：', error);
     });
 
-    // 执行各个可视化函数
-    drawHistogram(rawData);
-    drawAgeViolinGenderBox(rawData);
-    drawRiskCurve(rawData); // ← 这里绘制滑块 + 折线图 & 活动圆点
-  }).catch(error => {
-    console.error('加载 diabetes_prediction_dataset.csv 出错：', error);
-  });
+  // ================================================
+  // 2. 读取 diabetes_with_HbA1c.csv 并绘制第四个可视化
+  // ================================================
+  d3.csv('data/diabetes_with_HbA1c.csv', d => ({
+    Diabetes_012: +d.Diabetes_012,                 // 0 / 1 / 2
+    HighBP: +d.HighBP,                             // 0 / 1
+    HighChol: +d.HighChol,                         // 0 / 1
+    CholCheck: +d.CholCheck,                       // 0 / 1
+    BMI: +d.BMI,                                   // 数值
+    Smoker: +d.Smoker,                             // 0 / 1
+    Stroke: +d.Stroke,                             // 0 / 1
+    HeartDiseaseorAttack: +d.HeartDiseaseorAttack, // 0 / 1
+    PhysActivity: +d.PhysActivity,                 // 0 / 1
+    Fruits: +d.Fruits,                             // 0 / 1
+    Veggies: +d.Veggies,                           // 0 / 1
+    HvyAlcoholConsump: +d.HvyAlcoholConsump,       // 0 / 1
+    AnyHealthcare: +d.AnyHealthcare,               // 0 / 1
+    NoDocbcCost: +d.NoDocbcCost,                   // 0 / 1
+    GenHlth: +d.GenHlth,                           // 1–5
+    MentHlth: +d.MentHlth,                         // 天数
+    PhysHlth: +d.PhysHlth,                         // 天数
+    DiffWalk: +d.DiffWalk,                         // 0 / 1
+    Sex: +d.Sex,                                   // 0 / 1
+    Age: +d.Age,                                   // 数值编码
+    Education: +d.Education,                       // 1–6
+    Income: +d.Income,                             // 1–8
+    HbA1c: +d.HbA1c                                // 数值
+  }))
+    .then(caseData => {
+      // 首次绘制时，用默认下拉值（HighBP）
+      const defaultVar = d3.select('#caseVarSelect').property('value');
+      drawCasePlot(caseData, defaultVar);
 
-  // 初始化轮播（Carousel）
+      // 当下拉列表 change 时，重新绘制
+      d3.select('#caseVarSelect').on('change', function () {
+        const selectedVar = d3.select(this).property('value');
+        drawCasePlot(caseData, selectedVar);
+      });
+    })
+    .catch(error => {
+      console.error('加载 diabetes_with_HbA1c.csv 失败：', error);
+    });
+
+  // ================================================
+  // 3. 轮播（Carousel）初始化
+  // ================================================
   const slides = document.querySelectorAll('.carousel .slide');
   let currentIndex = 0;
   const slideCount = slides.length;
-  const intervalTime = 3000; // 每隔 3000ms（3 秒）切换一张
+  const intervalTime = 3000; // 每隔 3 秒切换
   if (slideCount > 1) {
     setInterval(() => {
       slides[currentIndex].classList.remove('active');
@@ -57,9 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* =========================================================================
-   1. 人群 HbA1c 分布 —— 动态直方图
-   ========================================================================= */
+
+// ==================================================
+// 1. 人群 HbA1c 分布 —— 动态直方图
+// ==================================================
 function drawHistogram(data) {
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
   const width = 800 - margin.left - margin.right;
@@ -72,20 +114,18 @@ function drawHistogram(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // 各分类数据
+  // 按 status 分组
   const dataAll = data;
   const dataNormal = data.filter(d => d.status === 'normal');
   const dataPre = data.filter(d => d.status === 'prediabetes');
   const dataDia = data.filter(d => d.status === 'diabetes');
 
-  // x 轴刻度范围
+  // X 轴范围
   const xDomain = [
     d3.min(dataAll, d => d.hbA1c) - 0.5,
     d3.max(dataAll, d => d.hbA1c) + 0.5
   ];
-  const x = d3.scaleLinear()
-    .domain(xDomain)
-    .range([0, width]);
+  const x = d3.scaleLinear().domain(xDomain).range([0, width]);
 
   // histogram 生成器
   const histogramGen = d3.histogram()
@@ -98,20 +138,18 @@ function drawHistogram(data) {
   const binsPre = histogramGen(dataPre);
   const binsDia = histogramGen(dataDia);
 
-  // 初始使用所有数据的 bins
   let currentBins = binsAll;
 
-  // y 轴 scale
   const y = d3.scaleLinear()
     .domain([0, d3.max(binsAll, d => d.length)])
     .range([height, 0]);
 
-  // 绘制 x 轴
+  // 绘制 X 轴
   svg.append('g')
     .attr('transform', `translate(0,${height})`)
     .call(d3.axisBottom(x));
 
-  // 绘制 y 轴
+  // 绘制 Y 轴
   const yAxis = svg.append('g')
     .call(d3.axisLeft(y));
 
@@ -120,7 +158,7 @@ function drawHistogram(data) {
     .append('div')
     .attr('class', 'tooltip');
 
-  // 创建初始矩形（柱子）
+  // 初始长方形
   const rects = svg.selectAll('rect')
     .data(currentBins)
     .enter()
@@ -131,12 +169,10 @@ function drawHistogram(data) {
     .attr('height', 0)
     .attr('fill', '#69b3a2');
 
-  // 鼠标交互
   rects
     .on('mouseover', function (event, d) {
       d3.select(this).attr('fill', '#ff7f0e');
-      tooltip
-        .html(`Range: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>Count: ${d.length}`)
+      tooltip.html(`区间: ${d.x0.toFixed(1)}–${d.x1.toFixed(1)}<br>计数: ${d.length}`)
         .style('left', (event.pageX + 10) + 'px')
         .style('top', (event.pageY - 30) + 'px')
         .style('opacity', 1);
@@ -146,13 +182,12 @@ function drawHistogram(data) {
       tooltip.style('opacity', 0);
     });
 
-  // 初始过渡：让柱子“从底部长出”
+  // 初始动画：从底部“长出”
   rects.transition()
     .duration(1200)
     .attr('y', d => y(d.length))
     .attr('height', d => height - y(d.length));
 
-  // 分类顺序循环：all → normal → prediabetes → diabetes → all
   const categories = [
     { name: 'all', bins: binsAll },
     { name: 'normal', bins: binsNor },
@@ -166,7 +201,6 @@ function drawHistogram(data) {
     updateHistogram(categories[idx].bins);
   }, 2500);
 
-  // 更新函数：更新 y 轴和柱子高度
   function updateHistogram(nextBins) {
     y.domain([0, d3.max(nextBins, d => d.length)]).nice();
     yAxis.transition().duration(800).call(d3.axisLeft(y));
@@ -180,15 +214,15 @@ function drawHistogram(data) {
   }
 }
 
-/* =========================================================================
-   2. 年龄段 + 性别 分析 —— 小提琴图 & 箱线图
-   ========================================================================= */
+
+// ==================================================
+// 2. 年龄段 小提琴图 + 性别 箱线图
+// ==================================================
 function drawAgeViolinGenderBox(data) {
-  // 过滤出需要的四个年龄组（0-20, 20-40, 40-60, 60-80）
+  // 年龄段
   const ageBins = ['0–20', '20–40', '40–60', '60–80'];
-  // 准备每个年龄段的 HbA1c 数组
   const ageGrouped = {};
-  ageBins.forEach(bin => ageGrouped[bin] = []);
+  ageBins.forEach(bin => (ageGrouped[bin] = []));
   data.forEach(d => {
     if (ageGrouped[d.ageGroup] !== undefined) {
       ageGrouped[d.ageGroup].push(d.hbA1c);
@@ -204,7 +238,7 @@ function drawAgeViolinGenderBox(data) {
     }
   });
 
-  // 1) 绘制小提琴图（Age Violin Plot）
+  // 2a) 小提琴图 (年龄段)
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
@@ -217,13 +251,11 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：年龄组
     const x = d3.scaleBand()
       .domain(ageBins)
       .range([0, width])
       .padding(0.4);
 
-    // y 轴：HbA1c 范围
     const allHbA1c = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
@@ -240,7 +272,8 @@ function drawAgeViolinGenderBox(data) {
       .attr('x', width / 2)
       .attr('y', height + margin.bottom - 5)
       .attr('text-anchor', 'middle')
-      .text('Age Group');
+      .text('年龄段');
+
     svg.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('x', -height / 2)
@@ -248,7 +281,7 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // Kernel Density Estimator 函数
+    // Kernel Density Estimator
     function kernelDensityEstimator(kernel, X) {
       return function (V) {
         return X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
@@ -261,7 +294,6 @@ function drawAgeViolinGenderBox(data) {
       };
     }
 
-    // 为每个年龄组计算密度
     const xTicks = d3.range(d3.min(allHbA1c), d3.max(allHbA1c) + 0.1, 0.1);
     const allDensities = [];
     ageBins.forEach(bin => {
@@ -275,20 +307,16 @@ function drawAgeViolinGenderBox(data) {
       }
     });
 
-    // 找到最大的密度值，用于缩放
     const maxDensity = d3.max(allDensities, d => d3.max(d.density, dd => dd[1]) || 0);
-
-    // 用来绘制小提琴图的水平尺度
     const xNum = d3.scaleLinear()
       .domain([0, maxDensity])
       .range([0, x.bandwidth() / 2]);
 
-    // 绘制每个小提琴
     allDensities.forEach(group => {
       const center = x(group.bin) + x.bandwidth() / 2;
       const grp = svg.append('g');
 
-      // 双边小提琴：先右半部分
+      // 右半边
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -301,7 +329,7 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke-width', 1)
         .attr('opacity', 0.6);
 
-      // 左半部分
+      // 左半边
       grp.append('path')
         .datum(group.density)
         .attr('d', d3.area()
@@ -316,11 +344,11 @@ function drawAgeViolinGenderBox(data) {
     });
   }
 
-  // 2) 绘制性别箱线图（Gender Box Plot），高度与上面相同
+  // 2b) 箱线图 (性别)
   {
     const margin = { top: 20, right: 30, bottom: 40, left: 50 };
     const width = 800 - margin.left - margin.right;
-    const height = 350 - margin.top - margin.bottom; // 与小提琴图保持相同高度
+    const height = 350 - margin.top - margin.bottom;
 
     const svg = d3.select('#genderBoxPlot')
       .append('svg')
@@ -329,19 +357,16 @@ function drawAgeViolinGenderBox(data) {
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // x 轴：Gender
     const x = d3.scaleBand()
       .domain(genderBins)
       .range([0, width])
       .padding(0.4);
 
-    // y 轴：HbA1c 范围，与上面一致
     const allHbA1c = data.map(d => d.hbA1c);
     const y = d3.scaleLinear()
       .domain([d3.min(allHbA1c) - 0.2, d3.max(allHbA1c) + 0.2])
       .range([height, 0]);
 
-    // 绘制轴
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
@@ -352,7 +377,8 @@ function drawAgeViolinGenderBox(data) {
       .attr('x', width / 2)
       .attr('y', height + margin.bottom - 5)
       .attr('text-anchor', 'middle')
-      .text('Gender');
+      .text('性别');
+
     svg.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('x', -height / 2)
@@ -360,7 +386,6 @@ function drawAgeViolinGenderBox(data) {
       .attr('text-anchor', 'middle')
       .text('HbA1c (%)');
 
-    // 准备将每个性别组排序并计算箱线图所需的五数概括
     const boxData = [];
     genderBins.forEach(gen => {
       const values = genderGrouped[gen].sort(d3.ascending);
@@ -373,7 +398,6 @@ function drawAgeViolinGenderBox(data) {
       boxData.push({ gender: gen, q1, median, q3, lowerWhisker, upperWhisker });
     });
 
-    // 绘制每个箱线
     const boxWidth = x.bandwidth() * 0.5;
     boxData.forEach(d => {
       const cx = x(d.gender) + x.bandwidth() / 2;
@@ -398,7 +422,7 @@ function drawAgeViolinGenderBox(data) {
         .attr('stroke', '#cc6600')
         .attr('stroke-width', 2);
 
-      // 须线（上下）
+      // 须线
       svg.append('line')
         .attr('x1', cx)
         .attr('x2', cx)
@@ -433,16 +457,15 @@ function drawAgeViolinGenderBox(data) {
   }
 }
 
-/* =========================================================================
-   3. HbA1c Threshold vs. Diabetes Proportion —— 滑块 + 折线图 & 活动圆点
-   ========================================================================= */
+
+// ==================================================
+// 3. HbA1c 门槛 vs 糖尿病比例（滑块 + 折线图）
+// ==================================================
 function drawRiskCurve(data) {
-  // 先获取数据中 HbA1c 的最小、最大值，用于滑块上下限
   const allHbValues = data.map(d => d.hbA1c);
   const minHb = d3.min(allHbValues);
   const maxHb = d3.max(allHbValues);
 
-  // 设置滑块属性
   const hbSlider = d3.select('#hbSlider')
     .attr('min', minHb.toFixed(1))
     .attr('max', maxHb.toFixed(1))
@@ -450,27 +473,21 @@ function drawRiskCurve(data) {
 
   d3.select('#thresholdValue').text(minHb.toFixed(1));
 
-  // 生成一系列阈值（0.1 步长）
   const thresholds = d3.range(minHb, maxHb + 0.0001, 0.1).map(d => +d.toFixed(1));
 
-  // 计算每个阈值下的“糖尿病比例”
   const proportionData = thresholds.map(thr => {
     const subset = data.filter(d => d.hbA1c >= thr);
-    if (subset.length === 0) {
-      return { threshold: thr, prop: 0 };
-    }
+    if (subset.length === 0) return { threshold: thr, prop: 0 };
     const countDi = subset.filter(d => d.diabetes === 1).length;
     return { threshold: thr, prop: countDi / subset.length };
   });
 
-  // 准备 SVG 尺寸
   const margin = { top: 20, right: 30, bottom: 40, left: 60 };
-  const svgWidth = 500;
-  const svgHeight = 350;
+  const svgWidth = 500, svgHeight = 350;
   const chartWidth = svgWidth - margin.left - margin.right;
   const chartHeight = svgHeight - margin.top - margin.bottom;
 
-  // 清空容器
+  // 清空旧内容
   d3.select('#riskBar').selectAll('*').remove();
 
   const svg = d3.select('#riskBar')
@@ -480,41 +497,36 @@ function drawRiskCurve(data) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // x 轴比例尺：阈值 → 像素
   const xScale = d3.scaleLinear()
     .domain([minHb, maxHb])
     .range([0, chartWidth]);
-
-  // y 轴比例尺：比例 0–1 → 像素
   const yScale = d3.scaleLinear()
     .domain([0, 1])
     .range([chartHeight, 0]);
 
-  // 绘制 x 轴
   svg.append('g')
     .attr('transform', `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xScale).ticks(6));
 
-  // 绘制 y 轴
   svg.append('g')
     .call(d3.axisLeft(yScale).tickFormat(d3.format('.0%')).ticks(5));
 
-  // x 轴标签
+  // X 轴标签
   svg.append('text')
     .attr('x', chartWidth / 2)
     .attr('y', chartHeight + margin.bottom - 5)
     .attr('text-anchor', 'middle')
     .attr('font-size', '14px')
-    .text('HbA1c Threshold');
+    .text('HbA1c 门槛');
 
-  // y 轴标签
+  // Y 轴标签
   svg.append('text')
     .attr('transform', 'rotate(-90)')
     .attr('x', -chartHeight / 2)
     .attr('y', -margin.left + 15)
     .attr('text-anchor', 'middle')
     .attr('font-size', '14px')
-    .text('Proportion of Diabetes');
+    .text('糖尿病比例');
 
   // 绘制折线
   const line = d3.line()
@@ -529,7 +541,7 @@ function drawRiskCurve(data) {
     .attr('stroke-width', 2)
     .attr('d', line);
 
-  // 绘制一个初始的“活动圆点”在最小阈值处
+  // 初始的活动圆点
   const activePoint = svg.append('circle')
     .attr('cx', xScale(minHb))
     .attr('cy', yScale(proportionData[0].prop))
@@ -538,7 +550,7 @@ function drawRiskCurve(data) {
     .attr('stroke', '#cc6600')
     .attr('stroke-width', 1.5);
 
-  // 在圆点旁边显示百分比文本
+  // 百分比文本
   const percentText = svg.append('text')
     .attr('x', xScale(minHb))
     .attr('y', yScale(proportionData[0].prop) - 10)
@@ -547,14 +559,10 @@ function drawRiskCurve(data) {
     .attr('fill', '#333')
     .text((proportionData[0].prop * 100).toFixed(1) + '%');
 
-  // 定义更新函数：当滑块变化时，移动圆点并更新文本
   function updateActivePoint(thr) {
-    // 四舍五入到 1 位小数
     const t = +thr.toFixed(1);
-    // 找到对应条目的 index
     const idx = proportionData.findIndex(d => d.threshold === t);
     if (idx < 0) return;
-
     const yValue = proportionData[idx].prop;
     const xPos = xScale(t);
     const yPos = yScale(yValue);
@@ -569,13 +577,156 @@ function drawRiskCurve(data) {
       .text((yValue * 100).toFixed(1) + '%');
   }
 
-  // 初始绘制
   updateActivePoint(minHb);
 
-  // 监听滑块变化
   hbSlider.on('input', function () {
     const curVal = +this.value;
     d3.select('#thresholdValue').text(curVal.toFixed(1));
     updateActivePoint(curVal);
+  });
+}
+
+
+// ==================================================
+// 4. 个体变量 vs HbA1c 散点图
+// ==================================================
+function drawCasePlot(data, variableKey) {
+  // 清空旧的 SVG & tooltip
+  d3.select('#casePlot').selectAll('*').remove();
+  d3.selectAll('.tooltip').remove();
+
+  // 为了性能，只取前 5000 条（可选）
+  const plotData = data.slice(0, 5000);
+
+  // 设置 margin 和 容器大小
+  const margin = { top: 40, right: 150, bottom: 60, left: 60 };
+  const container = document.getElementById('casePlot');
+  if (!container) {
+    console.error('找不到 #casePlot 容器');
+    return;
+  }
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+  const width = containerWidth - margin.left - margin.right;
+  const height = containerHeight - margin.top - margin.bottom;
+
+  // 创建 SVG 画布
+  const svg = d3.select('#casePlot')
+    .append('svg')
+    .attr('width', containerWidth)
+    .attr('height', containerHeight)
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // X 轴：选中变量 (0/1)，加抖动
+  const xScale = d3.scaleLinear()
+    .domain([-0.2, 1.2])
+    .range([0, width]);
+
+  // Y 轴：HbA1c
+  const yMin = d3.min(plotData, d => d.HbA1c) - 0.2;
+  const yMax = d3.max(plotData, d => d.HbA1c) + 0.2;
+  const yScale = d3.scaleLinear()
+    .domain([yMin, yMax])
+    .range([height, 0]);
+
+  // 绘制坐标轴
+  svg.append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(xScale).tickFormat(d => (d === 0 ? '0' : (d === 1 ? '1' : ''))));
+  svg.append('g')
+    .call(d3.axisLeft(yScale).ticks(8));
+
+  // 轴标签
+  svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', height + margin.bottom - 10)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .text(`${variableKey} (0 或 1)`);
+
+  svg.append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -height / 2)
+    .attr('y', -margin.left + 15)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .text('HbA1c (%)');
+
+  // Tooltip 容器
+  const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip');
+
+  // 根据 Diabetes_012 (0/1/2) 设置颜色
+  const diabetesCategories = Array.from(new Set(plotData.map(d => d.Diabetes_012)));
+  const colorScale = d3.scaleOrdinal()
+    .domain(diabetesCategories)
+    .range(['#1f77b4', '#ff7f0e', '#2ca02c']);
+
+  // 绘制散点
+  svg.selectAll('.dot-case')
+    .data(plotData)
+    .enter()
+    .append('circle')
+    .attr('class', 'dot-case')
+    .attr('cx', d => {
+      const raw = d[variableKey];
+      return xScale(raw + (Math.random() * 0.2 - 0.1));
+    })
+    .attr('cy', d => yScale(d.HbA1c))
+    .attr('r', 4)
+    .attr('fill', d => colorScale(d.Diabetes_012))
+    .attr('opacity', 0.75)
+    .on('mouseover', function (event, d) {
+      d3.select(this)
+        .attr('r', 6)
+        .attr('stroke', '#333')
+        .attr('stroke-width', 1);
+
+      const statusText = d.Diabetes_012 === 0 ? '无糖尿病'
+        : (d.Diabetes_012 === 1 ? '前驱糖尿病' : '糖尿病');
+
+      const textHtml = `
+        <strong>${variableKey}:</strong> ${d[variableKey] === 1 ? '是' : '否'}<br/>
+        <strong>HbA1c:</strong> ${d.HbA1c.toFixed(1)}%<br/>
+        <strong>糖尿病状态:</strong> ${statusText}
+      `;
+      tooltip.html(textHtml)
+        .style('left', (event.pageX + 12) + 'px')
+        .style('top', (event.pageY - 28) + 'px')
+        .style('opacity', 1);
+    })
+    .on('mouseout', function () {
+      d3.select(this)
+        .attr('r', 4)
+        .attr('stroke', 'none');
+      tooltip.style('opacity', 0);
+    });
+
+  // 右侧图例
+  const legend = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${width + 20}, 0)`);
+
+  diabetesCategories.forEach((cat, i) => {
+    const row = legend.append('g')
+      .attr('transform', `translate(0, ${i * 20})`);
+
+    row.append('rect')
+      .attr('width', 14)
+      .attr('height', 14)
+      .attr('fill', colorScale(cat))
+      .attr('stroke', '#555')
+      .attr('stroke-width', 0.5);
+
+    const labelText = cat === 0 ? '无糖尿病'
+      : (cat === 1 ? '前驱糖尿病' : '糖尿病');
+
+    row.append('text')
+      .attr('x', 20)
+      .attr('y', 12)
+      .attr('font-size', '12px')
+      .text(labelText);
   });
 }

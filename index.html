@@ -86,29 +86,39 @@
   <!-- ==============================
        1. 引言部分
        ============================== -->
-  <section id="intro" class="section-container">
-    <h1>What is HbA1c and Why Does It Matter?</h1>
-    <p>
-      HbA1c (glycated hemoglobin) is a biomarker formed when glucose binds to hemoglobin in red blood cells. Because
-      red blood cells live for about 120 days, HbA1c provides a reliable measure of average blood glucose levels over
-      the preceding 2–3 months. Clinically, HbA1c is widely used for diagnosing diabetes, identifying prediabetes,
-      and monitoring long-term glycemic control.
-      <br /><br />
-      <strong>Normal range:</strong> HbA1c &lt; 5.7%<br />
-      <strong>Prediabetes (high risk):</strong> 5.7% ≤ HbA1c &lt; 6.5%<br />
-      <strong>Diabetes diagnosis:</strong> HbA1c ≥ 6.5%
-    </p>
-    <p>
-      In this interactive visualization, we will explore:
-    <ol>
-      <li>Population-level distribution of HbA1c</li>
-      <li>How HbA1c varies across defined age groups</li>
-      <li>Comparison of HbA1c by gender (male vs. female)</li>
-      <li>The relationship between HbA1c and the probability of developing type 2 diabetes</li>
-      <li>Example individual trajectories illustrating progression from normal to prediabetes to diabetes</li>
-    </ol>
-    </p>
-  </section>
+<section id="risk" class="section-container">
+  <div class="two-column">
+    <!-- 左侧：Slider + 折线图 -->
+    <div class="chart-container">
+      <h2>HbA1c Threshold vs. Diabetes Proportion</h2>
+      <!-- 滑块容器 -->
+      <div id="thresholdSliderContainer" style="margin-bottom: 1.5rem;">
+        <label for="hbSlider">HbA1c Threshold: </label>
+        <input type="range" id="hbSlider" step="0.1" />
+        <span id="thresholdValue">0.0</span>
+      </div>
+      <!-- 动态折线图的 SVG 容器 -->
+      <div id="riskBar"></div>
+      <p class="caption">Figure 3a. 当 HbA1c ≥ 阈值 T 时，该人群中糖尿病患者所占比例。</p>
+    </div>
+
+    <!-- 右侧：对可视化的详细解释 -->
+    <div class="summary-text">
+      <h2>Interpretation</h2>
+      <p>
+        在这张图中，我们使用滑块来动态控制一个阈值 T。当用户拖动滑块时，图表会自动计算并显示 HbA1c 值 ≥ T 的子人群中，糖尿病患者所占的比例。圆点会沿着折线实时移动，并且上方会标注百分比数值。
+      </p>
+      <ul>
+        <li>当 T 较低（接近 HbA1c 的最小值）时，满足条件的个体较多，但其中糖尿病患者的比例相对较低。</li>
+        <li>随着 T 不断提高，仅保留 HbA1c 较高的那部分人群，此时他们患糖尿病的比例逐步升高。</li>
+        <li>当 T 超过约 6.5%（临界诊断值）后，曲线迅速向 100% 靠拢，表明几乎所有这部分人群都确诊为糖尿病。</li>
+      </ul>
+      <p>
+        通过这种左右分栏的布局，我们可以一边观察滑块与曲线动态变化，一边在右侧详细了解每个阈值所对应的数据含义，从而直观说明 HbA1c 越高，患糖尿病的比例就越大。
+      </p>
+    </div>
+  </div>
+</section>
 
   <!-- ==============================
        2. 人群 HbA1c 分布 —— 左右两栏：Key Statistics & Visualization
